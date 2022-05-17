@@ -39,36 +39,8 @@ module URBANopt
   module ExampleGeoJSONProject
     class ExampleGeoJSONProject < OpenStudio::Extension::Extension
 
-      # number of datapoints(features) you want to run in parallel
-      # based on the number of available processors on your local machine.
-      # This does not seem to function, instead added line to code for runner.config file
-      # OpenStudio::Extension::Extension::NUM_PARALLEL = 7
-
-      # set MAX_DATAPOINTS
-      OpenStudio::Extension::Extension::MAX_DATAPOINTS = 1000
-
-      def initialize
-        super
-        @root_dir = File.absolute_path(File.join(File.dirname(__FILE__), 'example_files'))
-      end
-
-      # Return the absolute path of the measures or empty string if there is none, can be used when configuring OSWs
-      def measures_dir
-        ""
-      end
-
-      # Relevant files such as weather data, design days, etc.
-      # Return the absolute path of the files or nil if there is none, used when configuring OSWs
-      def files_dir
-        return File.absolute_path(File.join(@root_dir, 'weather'))
-      end
-
     end
   end
-end
-
-def root_dir
-  return File.join(File.dirname(__FILE__), 'example_project')
 end
 
 def create_project(json)
@@ -146,8 +118,8 @@ end
 
 
 # Load in the rake tasks from the base extension gem
-rake_task = OpenStudio::Extension::RakeTask.new
-rake_task.set_extension_class(URBANopt::ExampleGeoJSONProject::ExampleGeoJSONProject)
+#rake_task = OpenStudio::Extension::RakeTask.new
+#rake_task.set_extension_class(URBANopt::ExampleGeoJSONProject::ExampleGeoJSONProject)
 
 desc 'Create project'
 task :urbanopt_create_project, [:json] do |t, args|
