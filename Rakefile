@@ -145,29 +145,6 @@ def run_project(feature_file, csv_file)
 end
 
 
-
-
-def configure_project
-  # write a runner.conf in project dir if it does not exist
-  # delete runner.conf to automatically regenerate it
-  options = {gemfile_path: File.join(root_dir, 'Gemfile'), bundle_install_path: File.join(root_dir, ".bundle/install"), num_parallel: 7}
-
-  # write a runner.conf in project dir (if it does not already exist)
-  if !File.exists?(File.join(root_dir, 'runner.conf'))
-    puts "GENERATING runner.conf file"
-    OpenStudio::Extension::RunnerConfig.init(root_dir)  # itinialize the file with default values
-    run_config = OpenStudio::Extension::RunnerConfig.new(root_dir) # get the configs
-    # update paths
-    options.each do |key, val|
-      run_config.update_config(key, val) # update gemfile_path
-    end
-    # save back to disk
-    run_config.save
-  else
-    puts "USING existing runner.conf file"
-  end
-end
-
 # Load in the rake tasks from the base extension gem
 rake_task = OpenStudio::Extension::RakeTask.new
 rake_task.set_extension_class(URBANopt::ExampleGeoJSONProject::ExampleGeoJSONProject)
@@ -215,9 +192,16 @@ task :urbanopt_post_process, [:json, :csv] do |t, args|
 
   json = args[:json]
   csv = args[:csv]
-  json = 'example_project_combined.json' if json.nil?
+  json = 'prototype_district_A.json' if json.nil?
   csv = 'baseline_scenario.csv' if csv.nil?
 
+  default_post_processor = URBANopt::Scenario::ScenarioDefaultPostProcessor.new(run_project(json, csv))
+  scenario_result = default_post_processor.run
+  # save scenario reports
+  scenario_result.save
+  # save feature reports
+  scenario_result.feature_reports.each(&:save_json_report)
+  scenario_result.feature_reports.each(&:save_csv_report)
 end
 
 
