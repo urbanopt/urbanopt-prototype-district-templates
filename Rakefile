@@ -43,16 +43,51 @@ module URBANopt
   end
 end
 
+def configure_project(json)
+  # write a runner.conf in project dir if it does not exist
+  # delete runner.conf to automatically regenerate it
+  project_name = File.basename(json, '.json')
+  root_dir = File.join(Dir.pwd, 'projects', project_name)
+  options = { gemfile_path: File.join(root_dir, 'Gemfile'), bundle_install_path: File.join(root_dir, '.bundle/install'), num_parallel: 7 }
+  runner_file_path = File.join(root_dir, 'runner.conf')
+  # write a runner.conf in project dir (if it does not already exist)
+  if !File.exist?(runner_file_path)
+    puts 'GENERATING runner.conf file'
+    OpenStudio::Extension::RunnerConfig.init(root_dir) # itinialize the file with default values
+    run_config = OpenStudio::Extension::RunnerConfig.new(root_dir) # get the configs
+    # update paths
+    options.each do |key, val|
+      run_config.update_config(key, val) # update gemfile_path
+    end
+    # save back to disk
+    run_config.save
+  else
+    runner_conf_hash = JSON.parse(File.read(runner_file_path))
+    puts 'USING existing runner.conf file'
+    if runner_conf_hash[:gemfile_path].empty?
+      runner_conf_hash[:gemfile_path] = options[:gemfile_path]
+    end
+    if runner_conf_hash[:bundle_install_path].empty?
+      runner_conf_hash[:gemfile_path] = options[:bundle_install_path]
+    end
+
+  end
+end
+
 def create_project(json)
   folder_name = json.split(".")[0]
-  dir_name = File.join(Dir.pwd, "projects/#{folder_name}")
+  project_folder = File.join(Dir.pwd, "projects")
+  dir_name = File.join(project_folder,folder_name)
+  unless Dir.exists?(project_folder)
+    FileUtils.mkdir project_folder
+  end
   unless Dir.exists?(dir_name)
-    Dir.mkdir File.join('projects', folder_name)
-    Dir.mkdir File.join('projects', folder_name, 'weather')
-    Dir.mkdir File.join('projects', folder_name, 'mappers')
+    FileUtils.mkdir File.join('projects', folder_name)
+    FileUtils.mkdir File.join('projects', folder_name, 'weather')
+    FileUtils.mkdir File.join('projects', folder_name, 'mappers')
 
     # copy config file
-    #FileUtils.cp(File.join('example_files', 'runner.conf'), File.join('projects', folder_name, 'runner.conf'))
+    FileUtils.cp(File.join('example_files', 'runner.conf'), File.join('projects', folder_name, 'runner.conf'))
 
     # copy gemfile
     FileUtils.cp(File.join('example_files', 'Gemfile'), dir_name)
@@ -63,7 +98,8 @@ def create_project(json)
 
     # copy feature file
     FileUtils.cp(File.join('example_files', 'feature_files', json), dir_name)
-
+  else
+    puts "Project folder already exists..."
   end
 end
 
@@ -74,7 +110,7 @@ def create_scenario_file(json, mapper)
   feature_file_json = JSON.parse(File.read(File.expand_path(File.join(dir_name,json))), symbolize_names: true)
 
   mapper_name = mapper.split(".")[0]
-  scenario_file_name = "#{mapper_name}_scenario.csv"
+  scenario_file_name = "#{mapper_name.downcase}_scenario.csv"
   # Create CSV
   CSV.open(File.join(dir_name, scenario_file_name), 'wb', write_headers: true, headers: ['Feature Id', 'Feature Name', 'Mapper Class']) do |csv|
     begin
@@ -107,11 +143,11 @@ def run_project(feature_file, csv_file)
   run_dir = File.join(root_dir, "run/#{mapper_name}/")
   mapper_files_dir = File.join(root_dir, 'mappers')
   name = csv_file.split(".")[0]
+  csv_file_dir = File.join(root_dir, csv_file)
   num_header_rows = 1
   feature_file_path = File.join(root_dir, feature_file)
-  
   feature_file = URBANopt::GeoJSON::GeoFile.from_file(feature_file_path)
-  scenario = URBANopt::Scenario::ScenarioCSV.new(name, root_dir, run_dir, feature_file, mapper_files_dir, csv_file, num_header_rows)
+  scenario = URBANopt::Scenario::ScenarioCSV.new(name, root_dir, run_dir, feature_file, mapper_files_dir, csv_file_dir, num_header_rows)
   return scenario
 
 end
@@ -153,9 +189,11 @@ task :urbanopt_run_project, [:json, :csv] do |t, args|
   feature_file = 'prototype_district_A.json' if feature_file.nil?
   csv_file = 'baseline_scenario.csv' if csv_file.nil?
 
+  #configure_project(feature_file)
+
+  puts "\nSimulating features of '#{feature_file}' as directed by '#{csv_file}'...\n\n"
   scenario_runner = URBANopt::Scenario::ScenarioRunnerOSW.new
   scenario_runner.run(run_project(feature_file, csv_file))
-
 end
 
 desc 'Post Process Project'
