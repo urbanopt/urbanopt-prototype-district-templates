@@ -196,6 +196,16 @@ task :urbanopt_run_project, [:json, :csv] do |t, args|
   scenario_runner.run(run_project(feature_file, csv_file))
 end
 
+desc 'Quick Test'
+task :qt, [:json, :csv] do |t, args|
+  puts 'Quick Test, creating project, creating scenario, running project ...'
+
+  Rake::Task["urbanopt_create_project"].invoke
+  Rake::Task["urbanopt_create_scenario"].invoke
+  Rake::Task["urbanopt_run_project"].invoke
+
+end
+
 desc 'Post Process Project'
 task :urbanopt_post_process, [:json, :csv] do |t, args|
   puts 'Post Processing Project...'
