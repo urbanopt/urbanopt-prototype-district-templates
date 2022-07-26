@@ -198,13 +198,18 @@ end
 
 desc 'Quick Test'
 task :qt, [:json, :csv] do |t, args|
-  puts 'Quick Test, creating project, creating scenario, running project ...'
+  puts 'Quick Test, creating project, creating scenario, running project, and post processing ...'
 
   Rake::Task["urbanopt_create_project"].invoke
   Rake::Task["urbanopt_create_scenario"].invoke
   Rake::Task["urbanopt_run_project"].invoke
+  Rake::Task["urbanopt_post_process"].invoke
 
 end
+
+# todo - setup a weather sweep rake task like qt, but have scenario setup that changes weather file for each scenario
+# make sure that change building location has climate zone to automatically set based on weather file
+# change to smaller geojson file with two office buildings so quick run and
 
 desc 'Post Process Project'
 task :urbanopt_post_process, [:json, :csv] do |t, args|
