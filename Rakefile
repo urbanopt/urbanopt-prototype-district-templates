@@ -103,7 +103,7 @@ def create_project(json)
   end
 end
 
-def create_scenario_file(json, mapper)
+def create_scenario_file(json, mapper, osw)
   folder_name = json.split(".")[0]
   dir_name = File.join(Dir.pwd, "projects/#{folder_name}")
 
@@ -131,7 +131,7 @@ def create_scenario_file(json, mapper)
   FileUtils.cp(File.join('example_files', 'mappers', mapper), File.join(dir_name, 'mappers'))
 
   # copy osw
-  FileUtils.cp(File.join('example_files', 'osw', 'base_workflow.osw'), File.join(dir_name, 'mappers'))
+  FileUtils.cp(File.join('example_files', 'osw', osw), File.join(dir_name, 'mappers'))
 
 end
 
@@ -168,15 +168,17 @@ task :urbanopt_create_project, [:json] do |t, args|
 end
 
 desc 'Create scenario'
-task :urbanopt_create_scenario, [:json, :mapper] do |t, args|
+task :urbanopt_create_scenario, [:json, :mapper, :osw] do |t, args|
   puts 'Creating scenario...'
 
   json = args[:json]
   json = 'prototype_district_A.json' if json.nil?
   mapper = args[:mapper]
   mapper = 'Baseline.rb' if mapper.nil?
+  osw = args[:osw]
+  osw = 'base_workflow.odw' if osw.nil?
 
-  create_scenario_file(json, mapper)
+  create_scenario_file(json, mapper, osw)
 
 end
 
@@ -210,6 +212,36 @@ end
 # todo - setup a weather sweep rake task like qt, but have scenario setup that changes weather file for each scenario
 # make sure that change building location has climate zone to automatically set based on weather file
 # change to smaller geojson file with two office buildings so quick run and
+desc 'Climate Sweep'
+task :clsw, [:json, :csv] do |t, args|
+  puts 'Climate Sweep, Similar to Quick Test but this meakes a Scenario for each weather file in directory'
+
+  json = 'prototype_district_A.json'
+
+  # make one project for all scenarios
+  Rake::Task["urbanopt_create_project"].invoke
+
+  # find and loop through all EPW files in weather directory
+  weather_files = Dir["example_files/weather/*.epw"]
+  puts "Found #{weather_files.size} in the example files"
+  weather_files.each do |epw|
+
+    basename = File.basename(epw)
+    sweep_prefix = basename.split(".").first.gsub("USA_","").split("-").first
+    mapper = "SweepBaseline_#{sweep_prefix}.rb"
+    osw = "sweep_base_workflow.osw"
+
+    puts "Creating and running Scenario for #{sweep_prefix}"
+    Rake::Task["urbanopt_create_scenario"].invoke(json, mapper, osw)
+    Rake::Task["urbanopt_create_scenario"].reenable # this lets invoke run again, can try execute instead which doesn't need this but that isn't working
+
+    # move outside of loop if not just running this scenario
+    #Rake::Task["urbanopt_run_project"].invoke
+    #Rake::Task["urbanopt_post_process"].invoke
+
+  end
+
+end
 
 desc 'Post Process Project'
 task :urbanopt_post_process, [:json, :csv] do |t, args|
