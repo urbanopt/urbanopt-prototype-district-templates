@@ -236,7 +236,7 @@ task :clsw, [:json, :csv] do |t, args|
     Rake::Task["urbanopt_create_scenario"].reenable # this lets invoke run again, can try execute instead which doesn't need this but that isn't working
 
     # name of CSV that should be made with scenario
-    csv = "sweepbaseline_#{sweep_prefix.downcase}_scenario"
+    csv = "sweepbaseline_#{sweep_prefix.downcase}_scenario.csv"
     Rake::Task["urbanopt_run_project"].invoke(json, csv)
     Rake::Task["urbanopt_run_project"].reenable
     Rake::Task["urbanopt_post_process"].invoke(json, csv)
