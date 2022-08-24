@@ -213,13 +213,15 @@ end
 # make sure that change building location has climate zone to automatically set based on weather file
 # change to smaller geojson file with two office buildings so quick run and
 desc 'Climate Sweep'
-task :clsw, [:json, :csv] do |t, args|
+task :clsw, [:json] do |t, args|
   puts 'Climate Sweep, Similar to Quick Test but this meakes a Scenario for each weather file in directory'
 
-  json = 'prototype_district_A.json'
+  # set default if JSON not passed in
+  json = args[:json]
+  json = 'prototype_district_A.json' if json.nil? #'proto_dist_a_min.json'
 
   # make one project for all scenarios
-  Rake::Task["urbanopt_create_project"].invoke
+  Rake::Task["urbanopt_create_project"].invoke(json)
 
   # find and loop through all EPW files in weather directory
   weather_files = Dir["example_files/weather/*.epw"]
@@ -239,8 +241,11 @@ task :clsw, [:json, :csv] do |t, args|
     csv = "sweepbaseline_#{sweep_prefix.downcase}_scenario.csv"
     Rake::Task["urbanopt_run_project"].invoke(json, csv)
     Rake::Task["urbanopt_run_project"].reenable
-    Rake::Task["urbanopt_post_process"].invoke(json, csv)
-    Rake::Task["urbanopt_post_process"].reenable
+
+    # currently if post processing fails the rake task ends, maybe find way to rescue this so the rest of the scenarios keep running
+    # int falls goes fine through this but Atlanta fail with stange path with it looking for nested projects directories that do not exist.
+    #Rake::Task["urbanopt_post_process"].invoke(json, csv)
+    #Rake::Task["urbanopt_post_process"].reenable
 
   end
 
