@@ -52,7 +52,8 @@
       "arguments":{
         "__SKIP__":true,
         "add_hvac":false,
-        "add_refrigeration":false
+        "add_refrigeration":false,
+        "use_upstream_args":false
       }
     },{
       "measure_dir_name":"blended_space_type_from_model",
