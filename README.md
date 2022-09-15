@@ -1,7 +1,7 @@
-# urbanopt-prototype-district-generator
-URBANopt prototype district generator development in collaboration with LBNL and NREL
+# urbanopt-prototype-district-templates
+URBANopt prototype district template development in collaboration with LBNL and NREL
 
-The URBANopt prototype district generator can be used to create and run URBANopt projects for prototype
+The URBANopt prototype district templates can be used to create and run URBANopt projects for prototype
 district types.
 
 The following commands can be utilized: 
