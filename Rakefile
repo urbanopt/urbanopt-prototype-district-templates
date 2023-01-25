@@ -87,7 +87,7 @@ def create_project(json)
     FileUtils.mkdir File.join('projects', folder_name, 'mappers')
 
     # copy config file
-    FileUtils.cp(File.join('example_files', 'runner.conf'), File.join('projects', folder_name, 'runner.conf'))
+    FileUtils.cp(File.join('example_files', 'runner.conf'), File.join(dir_name, 'runner.conf'))
 
     # copy gemfile
     FileUtils.cp(File.join('example_files', 'Gemfile'), dir_name)
@@ -98,6 +98,13 @@ def create_project(json)
 
     # copy feature file
     FileUtils.cp(File.join('example_files', 'feature_files', json), dir_name)
+
+    # copy residential files
+    FileUtils.cp_r(File.join('example_files', 'residential'), File.join(dir_name, 'mappers', 'residential'))
+    FileUtils.cp_r(File.join('example_files', 'measures'), File.join(dir_name, 'measures'))
+    FileUtils.cp_r(File.join('example_files', 'resources'), File.join(dir_name, 'resources'))
+    FileUtils.cp_r(File.join('example_files', 'xml_building'), File.join(dir_name, 'xml_building'))
+
   else
     puts "Project folder already exists..."
   end
