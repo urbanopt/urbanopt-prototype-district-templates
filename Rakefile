@@ -183,7 +183,7 @@ task :urbanopt_create_scenario, [:json, :mapper, :osw] do |t, args|
   mapper = args[:mapper]
   mapper = 'Baseline.rb' if mapper.nil?
   osw = args[:osw]
-  osw = 'base_workflow.odw' if osw.nil?
+  osw = 'base_workflow.osw' if osw.nil?
 
   create_scenario_file(json, mapper, osw)
 
