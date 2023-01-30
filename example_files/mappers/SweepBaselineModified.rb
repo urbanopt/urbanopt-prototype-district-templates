@@ -42,7 +42,7 @@ require 'logger'
 
 module URBANopt
   module Scenario
-    class BaselineModifiedMapper < SimulationMapperBase
+    class SweepBaselineModifiedMapper < SimulationMapperBase
       # class level variables
       @@logger = Logger.new($stdout)
       @@instance_lock = Mutex.new
@@ -55,7 +55,7 @@ module URBANopt
           if @@osw.nil?
 
             # load the OSW for this class
-            osw_path = File.join(File.dirname(__FILE__), 'base_workflow.osw')
+            osw_path = File.join(File.dirname(__FILE__), 'sweep_base_workflow.osw')
             File.open(osw_path, 'r') do |file|
               @@osw = JSON.parse(file.read, symbolize_names: true)
             end
