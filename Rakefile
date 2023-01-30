@@ -34,6 +34,7 @@ require 'urbanopt/scenario'
 require 'urbanopt/geojson'
 require 'urbanopt/reopt'
 require 'urbanopt/reopt_scenario'
+require 'json' 
 
 module URBANopt
   module ExampleGeoJSONProject
@@ -224,11 +225,11 @@ task :clsw, [:json] do |t, args|
   puts 'Climate Sweep, Similar to Quick Test but this meakes a Scenario for each weather file in directory'
 
   # set default if JSON not passed in
-  json = args[:json]
-  json = 'prototype_district_A.json' if json.nil? #'proto_dist_a_min.json'
+  json_raw = args[:json]
+  json_raw = 'urban_edge_example.json' if json_raw.nil?
 
-  # make one project for all scenarios
-  Rake::Task["urbanopt_create_project"].invoke(json)
+  # create a copy of JSON file with temp name
+  project_folder = File.join(Dir.pwd, "example_files/feature_files")
 
   # find and loop through all EPW files in weather directory
   weather_files = Dir["example_files/weather/*.epw"]
@@ -237,11 +238,37 @@ task :clsw, [:json] do |t, args|
 
     basename = File.basename(epw)
     sweep_prefix = basename.split(".").first.gsub("USA_","").split("-").first
-    mapper = "SweepBaseline_#{sweep_prefix}.rb"
+    mapper = "SweepBaselineModified.rb"
     osw = "sweep_base_workflow.osw"
 
+    # alter copy of JSON file to update weather file name
+    FileUtils.cp(File.join(project_folder, json_raw), File.join(project_folder, "sweep_#{sweep_prefix.downcase}.json"))
+    json_mod_name = "sweep_#{sweep_prefix.downcase}.json"
+    json_mod = JSON.parse(File.read(File.join(project_folder, json_mod_name,)))
+    json_mod["project"]["weather_filename"] = "#{basename}"
+    json_mod["project"]["climate_zone"] = nil
+
+    json_mod["features"].first["properties"]["weather_filename"] = "#{basename}"
+    json_mod["features"].first["properties"]["climate_zone"] = nil
+
+    # saving altered GeoJSON
+    json_mod.to_json
+    json_mod_path = File.join(project_folder, json_mod_name)
+    puts "Updating temp GEOJSON file for  #{json_mod_name}"
+    File.open(json_mod_path, "w") do |f|
+      f.puts JSON.pretty_generate(json_mod)
+    end
+
+    # make one project for each weather file
+    puts "Creating project for #{sweep_prefix}"
+    Rake::Task["urbanopt_create_project"].invoke(json_mod_name)
+    Rake::Task["urbanopt_create_project"].reenable # this lets invoke run again, can try execute instead which doesn't need this but that isn't working
+
+    # cleanup file file in example_files/feature_files
+    File.delete(json_mod_path)
+
     puts "Creating and running Scenario for #{sweep_prefix}"
-    Rake::Task["urbanopt_create_scenario"].invoke(json, mapper, osw)
+    Rake::Task["urbanopt_create_scenario"].invoke(json_mod_name, mapper, osw)
     Rake::Task["urbanopt_create_scenario"].reenable # this lets invoke run again, can try execute instead which doesn't need this but that isn't working
 
     # name of CSV that should be made with scenario
