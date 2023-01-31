@@ -234,7 +234,7 @@ task :clsw, [:json] do |t, args|
   # find and loop through all EPW files in weather directory
   weather_files = Dir["example_files/weather/*.epw"]
   puts "Found #{weather_files.size} in the example files"
-  weather_files.each do |epw|
+  weather_files.sort.each do |epw|
 
     basename = File.basename(epw)
     sweep_prefix = basename.split(".").first.gsub("USA_","").split("-").first
@@ -276,10 +276,13 @@ task :clsw, [:json] do |t, args|
     Rake::Task["urbanopt_run_project"].invoke(json_mod_name, csv)
     Rake::Task["urbanopt_run_project"].reenable
 
+    # post process fails to find GeoJSON file turned off for now
+    #GeoJSON file '/Users/dgoldwas/Documents/github/uo/proto_dist/projects/sweep_mn_international/projects/sweep_mn_international/sweep_mn_international.json' does not exist
+
     # currently if post processing fails the rake task ends, maybe find way to rescue this so the rest of the scenarios keep running
     # int falls goes fine through this but Atlanta fail with stange path with it looking for nested projects directories that do not exist.
-    Rake::Task["urbanopt_post_process"].invoke(json_mod_name, csv)
-    Rake::Task["urbanopt_post_process"].reenable
+    #Rake::Task["urbanopt_post_process"].invoke(json_mod_name, csv)
+    #Rake::Task["urbanopt_post_process"].reenable
 
   end
 
