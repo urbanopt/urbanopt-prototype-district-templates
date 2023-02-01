@@ -344,7 +344,7 @@ task :urbanopt_post_process, [:json, :csv] do |t, args|
   scenario_result.feature_reports.each(&:save_csv_report)
 end
 
-## Visualize feature results
+# Visualize feature results
 
 desc 'Visualize and compare results for all Features in a Scenario'
 task :urbanopt_visualize_features, [:json, :csv] do |t, args|
@@ -359,3 +359,83 @@ task :urbanopt_visualize_features, [:json, :csv] do |t, args|
 end
 
 task :default => :update_all
+
+# Create Testing Summary Report for climate sweep
+# This expects all projects to be run from same GeoJSON with same featureID's
+# First column is ID, followed by EUI for each climate zone, then unmet horus for each climate zone, then feature runtime min/max, E+ runtime min/max
+
+desc 'Generuate Climate Zone Sweep Summary CSV'
+task :clsw_summary do
+  puts 'Making CSV across all run projects with feature ID as key; first column'
+
+  # test specific strigns used for climate zone sweep
+  project_prefix = "sweep_"
+  scenario = "sweepbaselinemodified_scenario"
+
+  # hash that will be converted to CSV
+  feature_hash = {}
+  cz_strings = []
+
+  # loop through projects
+  Dir["projects/#{project_prefix}*"].sort.each do |project|
+    if Dir.exist?("#{project}/run/#{scenario}")
+      cz_string = project.gsub("projects/#{project_prefix}","")
+      puts "* Gathering data for #{cz_string}"
+      Dir["#{project}/run/#{scenario}/*"].sort.each do |feature|
+        next if ! File.directory?(feature)
+        feature_id = File.basename(feature)
+        # create new entry if this feature_id hasn't been added yet
+        if !feature_hash.has_key?(feature_id)
+          feature_hash[feature_id] = {:eui => {}, :unmet_occ => {}, :feature_rt => {}, :ep_rt => {}}
+        end
+
+        # pouplate data for this feature for this location
+        feature_hash[feature_id][:eui][cz_string] = 0.0 # todo - add lookup later
+        feature_hash[feature_id][:unmet_occ][cz_string] = 0.0 # todo - add lookup later
+        feature_hash[feature_id][:feature_rt][cz_string] = 0.0 # todo - add lookup later
+        feature_hash[feature_id][:ep_rt][cz_string] = 0.0 # todo - add lookup later
+
+      end
+    end
+  end
+
+  # for diagnostics, structured differentlY (nested) than csv
+  # puts feature_hash.inspect
+
+  # populate csv
+  require "csv"
+  csv_rows = []
+  made_headers = false
+  headers = ['feature_id']
+  feature_hash.each do |feature_id,v|
+    arr_row = [feature_id]
+
+    v[:eui].each do |cz,v_eui|
+      arr_row << v_eui
+      if ! made_headers then headers << "eui_#{cz}" end
+    end
+    v[:unmet_occ].each do |cz,v_unmet_occ|
+      arr_row << v_unmet_occ
+      if ! made_headers then headers << "unmet_occ_#{cz}" end
+    end
+    v[:feature_rt].each do |cz,v_feature_rt|
+      arr_row << v_feature_rt
+      if ! made_headers then headers << "feature_rt_#{cz}" end
+    end
+    v[:ep_rt].each do |cz,v_ep_rt|
+      arr_row << v_ep_rt
+      if ! made_headers then headers << "ep_rt_#{cz}" end
+    end
+    made_headers = true
+
+    csv_row = CSV::Row.new(headers, arr_row)
+    csv_rows.push(csv_row)  
+  end
+
+  # save csv
+  csv_table = CSV::Table.new(csv_rows)
+  path_report = "projects/climate_sweep_overview.csv"
+  puts "saving csv file to #{path_report}"
+  File.open(path_report, 'w'){|file| file << csv_table.to_s}
+
+end
