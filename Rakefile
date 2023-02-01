@@ -231,6 +231,9 @@ task :clsw, [:json] do |t, args|
   # create a copy of JSON file with temp name
   project_folder = File.join(Dir.pwd, "example_files/feature_files")
 
+  # path to go back to later
+  orig_dir = Dir.pwd
+
   # find and loop through all EPW files in weather directory
   weather_files = Dir["example_files/weather/*.epw"]
   puts "Found #{weather_files.size} in the example files"
@@ -283,6 +286,9 @@ task :clsw, [:json] do |t, args|
     # int falls goes fine through this but Atlanta fail with stange path with it looking for nested projects directories that do not exist.
     #Rake::Task["urbanopt_post_process"].invoke(json_mod_name, csv)
     #Rake::Task["urbanopt_post_process"].reenable
+
+    # Seems like need to move back up 2 directories because next location gets made within this project instead of at top level
+    Dir.chdir(orig_dir)
 
   end
 
