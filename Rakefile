@@ -160,6 +160,38 @@ def run_project(feature_file, csv_file)
 
 end
 
+def visualize_features(feature_file, scenario_file)
+  name = 'Visualize Feature Results'
+
+  feature_file = File.basename(feature_file, File.extname(feature_file))
+  scenario_name = File.basename(scenario_file, File.extname(scenario_file))
+  root_dir = File.join(Dir.pwd, 'projects', feature_file)
+  run_dir = File.join(root_dir, 'run', scenario_name.downcase)
+  feature_report_exists = false
+  csv = CSV.read(File.join(root_dir, scenario_file), headers: true)
+  feature_names = csv['Feature Name']
+  feature_folders = []
+  # loop through building feature ids from scenario csv
+  csv['Feature Id'].each do |feature|
+    # Check if Feature Optimization REopt file exists and add that
+    if File.exist?(File.join(run_dir, feature, 'feature_reports/feature_optimization.csv'))
+      feature_report_exists = true
+      feature_folders << File.join(run_dir, feature, 'feature_reports/feature_optimization.csv')
+    elsif File.exist?(File.join(run_dir, feature, 'feature_reports/default_feature_report.csv'))
+      feature_report_exists = true
+      feature_folders << File.join(run_dir, feature, 'feature_reports/default_feature_report.csv')
+    else puts "\nERROR: Default reports not created for #{feature}. Please use 'process --default' to create default post processing reports for all features first. Visualization not generated for #{feature}.\n"
+    end
+  end
+  if feature_report_exists == true
+    puts "\nCreating visualizations for Feature results in the Scenario\n"
+    URBANopt::Scenario::ResultVisualization.create_visualization(feature_folders, true, feature_names)
+    html_in_path = File.join(root_dir, 'visualization', 'input_visualization_feature.html')
+    html_out_path = File.join(root_dir, 'run', scenario_name, 'feature_comparison.html')
+    FileUtils.cp(html_in_path, html_out_path)
+    puts "\nDone\n"
+  end
+end
 
 # Load in the rake tasks from the base extension gem
 #rake_task = OpenStudio::Extension::RakeTask.new
@@ -301,7 +333,7 @@ task :urbanopt_post_process, [:json, :csv] do |t, args|
   json = args[:json]
   csv = args[:csv]
   json = 'urban_edge_example.json' if json.nil?
-  csv = 'baseline_modified_scenario.csv' if csv.nil?
+  csv = 'baselinemodified_scenario.csv' if csv.nil?
 
   default_post_processor = URBANopt::Scenario::ScenarioDefaultPostProcessor.new(run_project(json, csv))
   scenario_result = default_post_processor.run
@@ -312,5 +344,18 @@ task :urbanopt_post_process, [:json, :csv] do |t, args|
   scenario_result.feature_reports.each(&:save_csv_report)
 end
 
+## Visualize feature results
+
+desc 'Visualize and compare results for all Features in a Scenario'
+task :urbanopt_visualize_features, [:json, :csv] do |t, args|
+  puts 'Visualizing results for all Features in the Scenario...'
+
+  json = args[:json]
+  csv = args[:csv]
+  json = 'urban_edge_example.json' if json.nil?
+  csv = 'baselinemodified_scenario.csv' if csv.nil?
+
+  visualize_features(json, csv)
+end
 
 task :default => :update_all
