@@ -170,7 +170,7 @@ task :urbanopt_create_project, [:json] do |t, args|
   puts 'Creating project...'
 
   json = args[:json]
-  json = 'prototype_district_A.json' if json.nil?
+  json = 'urban_edge_example.json' if json.nil?
 
   create_project(json)
 end
@@ -180,9 +180,9 @@ task :urbanopt_create_scenario, [:json, :mapper, :osw] do |t, args|
   puts 'Creating scenario...'
 
   json = args[:json]
-  json = 'prototype_district_A.json' if json.nil?
+  json = 'urban_edge_example.json' if json.nil?
   mapper = args[:mapper]
-  mapper = 'Baseline.rb' if mapper.nil?
+  mapper = 'BaselineModified.rb' if mapper.nil?
   osw = args[:osw]
   osw = 'base_workflow.osw' if osw.nil?
 
@@ -196,8 +196,8 @@ task :urbanopt_run_project, [:json, :csv] do |t, args|
 
   feature_file = args[:json]
   csv_file = args[:csv]
-  feature_file = 'prototype_district_A.json' if feature_file.nil?
-  csv_file = 'baseline_scenario.csv' if csv_file.nil?
+  feature_file = 'urban_edge_example.json' if feature_file.nil?
+  csv_file = 'baselinemodified_scenario.csv' if csv_file.nil?
 
   #configure_project(feature_file)
 
@@ -300,8 +300,8 @@ task :urbanopt_post_process, [:json, :csv] do |t, args|
 
   json = args[:json]
   csv = args[:csv]
-  json = 'prototype_district_A.json' if json.nil?
-  csv = 'baseline_scenario.csv' if csv.nil?
+  json = 'urban_edge_example.json' if json.nil?
+  csv = 'baseline_modified_scenario.csv' if csv.nil?
 
   default_post_processor = URBANopt::Scenario::ScenarioDefaultPostProcessor.new(run_project(json, csv))
   scenario_result = default_post_processor.run
