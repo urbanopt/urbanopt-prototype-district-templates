@@ -1,0 +1,782 @@
+<!doctype html>
+<html ng-app="myApp">
+  <head>
+    <meta charset="utf-8">
+    <title>Scenario Comparison</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/angular-material/1.1.4/angular-material.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/nvd3/1.8.5/nv.d3.min.css">
+    <link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.4/lodash.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/angular.js/1.6.4/angular.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/angular.js/1.6.4/angular-animate.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/angular.js/1.6.4/angular-aria.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/angular-material/1.1.4/angular-material.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.17/d3.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/nvd3/1.8.5/nv.d3.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/angular-nvd3/1.0.7/angular-nvd3.min.js"></script>
+
+    <script src="scenarioData.js"></script>
+    <style type="text/css">
+        body {
+            font-family: 'Roboto', sans-serif;
+        }
+
+        .container {
+          margin:20px;
+        }
+
+        .error {
+          color: red;
+        }
+
+        nvd3 {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        nvd3.remove-x-lines .nv-x .tick line {
+            display: none;
+        }
+
+        nvd3.remove-y-lines .nv-y .tick line {
+            display: none;
+        }
+
+        nvd3.remove-line-stroke .nv-groups path.nv-line {
+            stroke-width: 0 !important;
+        }
+
+        nvd3.remove-opacity .nv-groups .nv-group {
+            fill-opacity: 1 !important;
+        }
+
+        nvd3.show-line-points .nv-line .nv-scatter .nv-groups .nv-point {
+            fill-opacity: 1 !important;
+            stroke-opacity: 1 !important;
+        }
+
+        .nvd3 text {
+            font-family: 'Roboto', sans-serif;
+        }
+
+        .nvd3 line.nv-guideline {
+            stroke: rgba(0, 0, 0, 0.54);
+        }
+
+        .nvd3 .nv-groups .nv-point.hover {
+            stroke-width: 3px !important;
+            fill-opacity: 1 !important;
+            stroke-opacity: 1 !important;
+        }
+
+        .nvtooltip {
+            background: none;
+            color: white;
+            padding: 0;
+            border: none;
+        }
+
+        .nvtooltip.gravity-n:after {
+            display: block;
+            position: absolute;
+            content: '';
+            width: 0;
+            height: 0;
+            left: 50%;
+            bottom: 100%;
+            margin-left: -5px;
+            border: 5px solid transparent;
+            border-bottom-color: rgba(0, 0, 0, 0.87);
+        }
+
+        .nvtooltip.gravity-s:after {
+            display: block;
+            position: absolute;
+            content: '';
+            width: 0;
+            height: 0;
+            top: 100%;
+            left: 50%;
+            margin-left: -5px;
+            border: 5px solid transparent;
+            border-top-color: rgba(0, 0, 0, 0.87);
+        }
+
+        .nvtooltip.gravity-e:after {
+            display: block;
+            position: absolute;
+            content: '';
+            width: 0;
+            height: 0;
+            top: 50%;
+            right: 0;
+            margin-top: -6px;
+            margin-right: -11px;
+            border: 6px solid transparent;
+            border-left-color: rgba(0, 0, 0, 0.87);
+        }
+
+        .nvtooltip.gravity-w:after {
+            display: block;
+            position: absolute;
+            content: '';
+            width: 0;
+            height: 0;
+            top: 50%;
+            margin-top: -6px;
+            margin-left: -11px;
+            border: 6px solid transparent;
+            border-right-color: rgba(0, 0, 0, 0.87);
+        }
+
+        .nvtooltip table {
+            background: rgba(0, 0, 0, 0.87);
+            padding: 8px 12px;
+            margin: 0;
+            border-radius: 2px;
+        }
+
+        .nvtooltip table tbody tr td.legend-color-guide div {
+            border: none;
+        }
+
+        .nvtooltip table tbody tr td:last-child {
+            padding-right: 0;
+        }
+
+        .qaqc-table tr:nth-child(odd) td {
+          background-color: #E3ECF5;
+        }
+        .qaqc-table tr:nth-child(even) td {
+          background-color: #D1DEEC;
+        }
+        .qaqc-table td {
+          vertical-align: top;
+          word-wrap: break-word;
+        }
+        .qaqc-table td, .qaqc-table th {
+          padding: 12px 16px;
+          text-align: left;
+        }
+        .qaqc-table {
+          padding-left: 0px;
+          overflow: scroll;
+          display: inline-block;
+          font-size:  0.9em;
+          
+        }
+        .flag-cell {
+          text-align: center !important;
+        }
+
+        table {
+          padding-left: 15px;
+          margin-bottom: 20px;
+          max-width: 100%;
+          width: 100%;
+          border-spacing: 0;
+          border-radius: 2px;
+          overflow: hidden;
+        }
+        thead {
+          display: table-header-group;
+          vertical-align: middle;
+          border-color: inherit;
+        }
+        th {
+          background-color: #014D4D;
+          color: white;
+          display: table-cell;
+          vertical-align: inherit;
+          font-weight: bold;
+        }
+        tr {
+          display: table-row;
+          vertical-align: inherit;
+          border-color: inherit;
+          margin-bottom: 16px;
+          max-width: 100%;
+          width: 100%;
+          border-spacing: 0;
+          border-radius: 2px;
+          overflow: hidden;
+        }
+        tbody {
+          display: table-row-group;
+          vertical-align: middle;
+          border-color: inherit;
+        }
+        .table-row {
+          min-height: 72px;
+        }
+    </style>
+  </head>
+  <body ng-cloak>
+
+    <div ng-controller="MyAppCtrl" class="container">
+
+        <h1>Scenarios</h1>
+
+        <h2>Monthly Fuel Use</h2>
+        <md-content class="md-padding" layout-sm="column" layout="row" layout-wrap>
+            <div flex-gt-sm="50" flex-gt-md="25" ng-repeat="scenario in scenarios">
+
+                <md-card>
+                    <md-card-title>
+                        <md-card-title-text>
+                            <span class="md-headline">{{ scenario.name }}</span>
+                            <span class="md-subhead">Monthly Overview </span>
+                            <span ng-if="scenario.complete_simulation!=true" class="md-subhead error">{{errorText}}</span>
+                        </md-card-title-text>
+                    </md-card-title>
+                    <md-card-content>
+                        <nvd3 class="h-320 remove-x-lines" options="monthlyFuelChartOptions" data="monthlyFuelChartData[scenario.name]"></nvd3>
+                    </md-card-content>
+                </md-card>
+            </div>
+        </md-content>
+
+        <h2>Monthly Net Energy</h2>
+        <md-content class="md-padding" layout-sm="column" layout="row" layout-wrap>
+            <div flex-gt-sm="50" flex-gt-md="25" ng-repeat="scenario in scenarios">
+                <md-card>
+                    <md-card-title>
+                        <md-card-title-text>
+                            <span class="md-headline">{{ scenario.name }}</span>
+                            <span class="md-subhead">Annual Net Energy - {{
+                            annualNetChartData[scenario.name] }} </span>
+                            <span class="md-subhead">Monthly Net Energy </span>
+                            <span ng-if="scenario.complete_simulation!=true" class="md-subhead error">{{errorText}}</span>
+                        </md-card-title-text>
+                    </md-card-title>
+                    <md-card-content>
+                        <nvd3 class="h-320 remove-x-lines" options="monthlyNetChartOptions" data="monthlyNetChartData[scenario.name]"></nvd3>
+                    </md-card-content>
+                </md-card>
+            </div>
+        </md-content>
+
+        <h2>Annual End Uses</h2>
+        <md-content class="md-padding" layout-sm="column" layout="row" layout-wrap>
+            <div flex-gt-sm="50" flex-gt-md="25" ng-repeat="scenario in scenarios">
+                <md-card>
+                    <md-card-title>
+                        <md-card-title-text>
+                            <span class="md-headline">{{ scenario.name }}</span>
+                            <span class="md-subhead">Annual End Use (kWh)</span>
+                            <span ng-if="scenario.complete_simulation!=true" class="md-subhead error">{{errorText}}</span>
+                        </md-card-title-text>
+                    </md-card-title>
+                    <md-card-content>
+                        <nvd3 class="h-420 remove-x-lines" options="annualEndUseChartOptions" data="annualEndUseChartData[scenario.name]"></nvd3>
+                    </md-card-content>
+                </md-card>
+            </div>
+        </md-content>
+
+        <div ng-if="scenarios && scenarios[0] && scenarios[0]['annual_values']['Future_Annual_Electricity_Emissions']" >    
+          <h2>Emissions</h2>
+          <p>Multiple emissions associated with electricity may be included in the graphs below and represent different calculation approaches (e.g., future hourly and historical average). Electricity emissions values from different calculation approaches should NOT be summed together.</p>
+          <md-content class="md-padding" layout-sm="column" layout="row" layout-wrap>
+              <div flex-gt-sm="50" flex-gt-md="25" ng-repeat="chart in emissionCharts">
+                  <md-card>
+                      <md-card-title>
+                          <md-card-title-text>
+                              <span class="md-headline">{{ chart.name | strReplace:'_':' ' | strReplace:'Emissions':'' | strReplace:'Intensity':''}}</span>
+                              <span class="md-subhead">
+                                <span>Emissions</span>
+                                <span ng-if="chart.name.includes('Intensity')"> Intensity </span> 
+                                ({{ chart.units}})</span>
+
+                             <!--  <span ng-if="scenario.complete_simulation!=true" class="md-subhead error">{{errorText}}</span> -->
+                          </md-card-title-text>
+                      </md-card-title>
+                      <md-card-content>
+                          <nvd3 class="h-420 remove-x-lines" options="annualEmissionsChartOptions[chart.name]" data="annualEmissionsChartData[chart.name]"></nvd3>
+                      </md-card-content>
+                  </md-card>
+              </div>
+          </md-content>
+        </div>
+
+        <div ng-if="scenarios && scenarios[0] && scenarios[0]['qaqc_flags'] && (scenarios[0]['qaqc_flags'] | json) != '{}'" >    
+          <h2>QAQC</h2>
+          <p>The table below shows the aggregated number of QAQC flags raised in each scenario.</p>
+          <md-content class="md-padding" layout-sm="column" layout="row" layout-wrap>
+              <div flex-gt-sm="50" flex-gt-md="25" ng-repeat="scenario in scenarios">
+                  <md-card>
+                      <md-card-title>
+                          <md-card-title-text>
+                              <span class="md-headline">{{ scenario.name }}</span>
+                              <span class="md-subhead">QAQC</span>
+                          </md-card-title-text>
+                      </md-card-title>
+                      <md-card-content>
+                          <table class="qaqc-table" ng-if="scenario['qaqc_flags'] && (scenario['qaqc_flags'] | json) != '{}'">
+                            <tr>
+                              <th class="header-cell">Category</th>
+                              <th class="header-cell">Flags Raised</th>
+                            </tr>
+                            <tr class="table-row" ng-repeat="(key, val) in scenario.qaqc_flags">
+                              <td style="white-space: nowrap;">{{key.replaceAll("_", " ")}}</td>
+                              <td class="flag-cell" style="white-space: nowrap;">{{val}}</td>
+                            </tr>
+                          </table>
+                          <p ng-if="!scenario['qaqc_flags'] || (scenario['qaqc_flags'] | json) == '{}'"> No Data </p>
+                      </md-card-content>
+                  </md-card>
+              </div>
+          </md-content>
+        </div>
+    </div>
+
+    <div class="error">
+      <span id="error-name"></span>
+    </div>
+
+
+    <script type="text/javascript">
+      
+      var myApp = angular.module('myApp', ['ngMaterial', 'nvd3']);
+
+      myApp.controller('MyAppCtrl', function ($scope) {
+        $scope.scenarios = scenarioData;
+        
+        $scope.monthlyFuelChartOptions = {
+          chart: {
+            type: 'multiBarChart',
+            color: ['#187C7C', '#8CC025', '#CE2828', '#AFECE7', '#F19953'],
+            height: 320,
+            margin: {
+              top: 45,
+              right: 2,
+              bottom: 32,
+              left: 64
+            },
+            clipEdge: true,
+            groupSpacing: 0.3,
+            reduceXTicks: false,
+            stacked: false,
+            duration: 250,
+            x: function (d) {
+              return d.x;
+            },
+            y: function (d) {
+              return d.y;
+            },
+            yAxis: {
+              tickFormat: function (d) {
+                return d;
+              }
+            },
+            showControls: false,
+            legend: {
+              margin: {
+                top: 5,
+                bottom: 32
+              }
+            },
+            controls: {
+              margin: {
+                top: 8,
+                bottom: 32
+              }
+            },
+            tooltip: {
+              gravity: 's',
+              classes: 'gravity-s'
+            }
+          }
+        };
+
+        $scope.monthlyNetChartOptions = {
+          chart: {
+            type: 'multiBarChart',
+            color: ['#014D4D'],
+            height: 320,
+            margin: {
+              top: 45,
+              right: 2,
+              bottom: 32,
+              left: 64
+            },
+            clipEdge: true,
+            groupSpacing: 0.3,
+            reduceXTicks: false,
+            stacked: false,
+            duration: 250,
+            x: function (d) {
+              return d.x;
+            },
+            y: function (d) {
+              return d.y;
+            },
+            yAxis: {
+              tickFormat: function (d) {
+                return d;
+              }
+            },
+            showControls: false,
+            legend: {
+              margin: {
+                top: 5,
+                bottom: 32
+              }
+            },
+            controls: {
+              margin: {
+                top: 8,
+                bottom: 32
+              }
+            },
+            tooltip: {
+              gravity: 's',
+              classes: 'gravity-s'
+            }
+          }
+        };
+
+        $scope.annualEndUseChartOptions = {
+          chart: {
+            type: 'multiBarChart',
+            // color: ['#014D4D'],
+            height: 420,
+            wrapLabels: true,
+            margin: {
+              top: 8,
+              right: 140,
+              bottom: 32,
+              left: 64
+            },
+            clipEdge: true,
+            groupSpacing: 0.3,
+            reduceXTicks: false,
+            stacked: true,
+            duration: 250,
+            x: function (d) {
+              return d.x;
+            },
+            y: function (d) {
+              return d.y;
+            },
+            yAxis: {
+              tickFormat: function (d) {
+                return d;
+              }
+            },
+            showControls: false,
+            legend: {
+              margin: {
+                top: 8,
+                bottom: 32,
+                left: 250,
+                right: 10
+              },
+              maxKeyLength: 100
+            },
+            controls: {
+              margin: {
+                top: 8,
+                bottom: 32
+              }
+            },
+            tooltip: {
+              gravity: 's',
+              classes: 'gravity-s'
+            }
+          }
+        };
+
+        $scope.emissionCharts = [ 
+          {'name': 'Future_Annual_Electricity_Emissions', 'units': 'mt CO2e' },
+          {'name': 'Future_Hourly_Electricity_Emissions','units': 'mt CO2e' },
+          {'name': 'Historical_Annual_Electricity_Emissions','units': 'mt CO2e' }, 
+          {'name': 'Historical_Hourly_Electricity_Emissions','units': 'mt CO2e' },
+          {'name': 'Natural_Gas_Emissions', 'units': 'mt CO2e' },
+          {'name': 'Propane_Emissions', 'units': 'mt CO2e' },
+          {'name': 'FuelOilNo2_Emissions', 'units': 'mt CO2e' }
+        ];
+
+        $scope.annualEmissionsChartOptions = [];
+        _.forEach($scope.emissionCharts, function(chart) {
+            $scope.annualEmissionsChartOptions[chart.name] = {
+              chart: {
+                type: 'multiBarChart',
+                color: ['#014D4D'],
+                height: 320,
+                margin: {
+                  top: 45,
+                  right: 2,
+                  bottom: 32,
+                  left: 64
+                },
+                clipEdge: true,
+                groupSpacing: 0.3,
+                reduceXTicks: false,
+                stacked: false,
+                duration: 250,
+                x: function (d) {
+                  return d.x;
+                },
+                y: function (d) {
+                  return d.y;
+                },
+                yAxis: {
+                  tickFormat: function (d) {
+                    return d;
+                  }
+                },
+                showControls: false,
+                showLegend: false,
+                tooltip: {
+                  gravity: 's',
+                  classes: 'gravity-s'
+                }
+              }
+            };
+            // update color for Intensity charts
+            if (chart.name.includes('Intensity')) {
+              $scope.annualEmissionsChartOptions[chart.name]['chart']['color'] = ['#8CC025'];
+            }
+        });
+
+        var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        
+        var datasets = ['Electricity:Facility', 'REopt:ElectricityProduced:Total', 'NaturalGas:Facility', 'Propane:Facility', 'FuelOilNo2:Facility', 'OtherFuels:Facility'];
+
+        var endUseKeys = ['Heating:Electricity', 'Cooling:Electricity', 'InteriorLights:Electricity', 'ExteriorLights:Electricity', 'InteriorEquipment:Electricity', 'ExteriorEquipment:Electricity', 'Fans:Electricity', 'Pumps:Electricity', 'HeatRejection:Electricity', 'WaterSystems:Electricity'];
+        
+        var kbtu_datasets = ['NaturalGas:Facility', 'Propane:Facility', 'FuelOilNo2:Facility', 'OtherFuels:Facility'];
+        var changeToKbtu = false;
+
+        var applicableEndUseKeys = [];
+
+        $scope.monthlyFuelChartData = {};
+        $scope.monthlyNetChartData = {};
+        $scope.annualNetChartData = {};
+        $scope.annualEndUseChartData = {};
+        $scope.annualEmissionsChartData = {};
+        
+        // setup emissions
+        var emissionsYMin = {};
+        var emissionsYMax = {};
+        _.forEach($scope.emissionCharts, function(chart) {
+            $scope.annualEmissionsChartData[chart.name] = [{key: chart.name, values: []}];
+            emissionsYMin[chart.name] = 0;
+            emissionsYMax[chart.name] = 0;
+        });
+
+        var monthlyFuelYMax = 0;
+        var monthlyNetYMin = 0;
+        var monthlyNetYMax = 0;
+
+        var annualTotalYMax = 0;
+        $scope.errorText = "No data. This scenario either did not complete successfully or did not include an annual simulation ranging from January 1 to December 31.";
+
+        // figure out max total energy use and applicable end uses
+        _.forEach($scope.scenarios, function (scenario) {
+            var total_value = 0;
+
+          _.forEach(endUseKeys, function (endUseKey) {
+            var endUseValue = scenario.annual_values[endUseKey];
+            // console.log("endUseKey: ", endUseKey, "endUseValue: ", endUseValue);
+            
+            if (endUseValue == 0 || !endUseValue) {
+              console.log("no data found for: ", endUseKey);
+            }
+            else {
+              applicableEndUseKeys.push(endUseKey);
+              total_value += endUseValue
+            }
+          });
+          annualTotalYMax = _.max([annualTotalYMax, total_value]);
+        });
+
+        applicableEndUseKeys = _.uniq(applicableEndUseKeys).sort();
+
+        // gather data for each scenario
+        _.forEach($scope.scenarios, function (scenario) {
+
+          if(scenario['complete_simulation'] == true){
+
+            // emissions chart
+            _.forEach($scope.emissionCharts, function(chart) {
+              var val = scenario.annual_values[chart.name];
+              $scope.annualEmissionsChartData[chart.name][0]['values'].push({
+                  x: scenario.name,
+                  y: val
+              });
+              emissionsYMin[chart.name] = _.min([emissionsYMin[chart.name], val]);
+              emissionsYMax[chart.name] = _.max([emissionsYMax[chart.name], val]);
+            });
+
+            // monthly fuel use
+            $scope.monthlyFuelChartData[scenario.name] = [];
+             
+              // first iterate through all kbtu datasets to see if you'll need to change to kBtu units
+            _.forEach(kbtu_datasets, function (kbtu_dataset) {
+              var values = scenario.monthly_values[kbtu_dataset];
+              if ((typeof values !== 'undefined') && (!(values.every(item => item === 0)))) {
+                changeToKbtu = true;
+              }
+            });
+
+            _.forEach(datasets, function (dataset) {
+              
+              var values = scenario.monthly_values[dataset];
+              var datasetUnit = "";
+
+              if (dataset == 'Electricity:Facility') {
+                // first check if there is data to include
+                if ((typeof values !== 'undefined') && (!(values.every(item => item === 0)))) {
+                  console.log("change to kbtu?", changeToKbtu);
+                  if (changeToKbtu) {
+                    var kBtuValues = [];
+                    var kwhValues = scenario.monthly_values[dataset]
+                    _.forEach(kwhValues, function (kwhValue) {
+                      new_value = kwhValue*3.4121416; //convert kwh to kbtu
+                      kBtuValues.push(new_value);
+                    })
+                    values = kBtuValues;
+                    datasetUnit = 'Electricity:Facility(kBtu)';
+                  } else {
+                    datasetUnit = 'Electricity:Facility(kWh)';
+                  }
+                }
+              } else if (dataset == 'REopt:ElectricityProduced:Total') {
+                // first check if there is data to include
+                if ((typeof values !== 'undefined') && (!(values.every(item => item === 0)))) {
+                  if (changeToKbtu) {
+                    var kBtuValues = [];
+                    var kwhValues = scenario.monthly_values[dataset];
+                    _.forEach(kwhValues, function (kwhValue) {
+                      new_value = kwhValue*3.4121416; //convert kwh to kbtu
+                      kBtuValues.push(new_value);
+                    })
+                    values = kBtuValues;
+                    datasetUnit = 'ElectricityProduced:Facility(kBtu)';
+
+                  } else {
+                    datasetUnit = 'ElectricityProduced:Facility(kWh)'
+                  }
+                }
+              } else {
+                // everything else gets kBtu for now
+                if (!(values.every(item => item === 0))) {
+                  datasetUnit = dataset + '(kBtu)';
+                }
+              };
+              // if datasetUnit is empty string, there is no data so don't push it in the array
+              if (datasetUnit != ""){
+                $scope.monthlyFuelChartData[scenario.name].push({
+                  key: datasetUnit,
+                  values: _.map(values, function (value, i) {
+                    value;
+                    monthlyFuelYMax = _.max([monthlyFuelYMax, value]);
+                    return {
+                      x: months[i],
+                      y: value
+                    };
+                  })
+                });
+              }
+            });
+          }
+
+          // monthly net use
+          if(scenario['complete_simulation'] == true){
+            $scope.monthlyNetChartData[scenario.name] = [];
+            var values = scenario.monthly_values['NaturalGas:Facility'];
+            var changeToKbtu = false;
+            if ((typeof values !== 'undefined') && (!(values.every(item => item === 0)))) {
+              changeToKbtu = true
+            }
+            var unit = ' (kWh)'
+            if (changeToKbtu){
+              unit = ' (kBtu)'
+            }
+
+            $scope.annualNetChartData[scenario.name] = 0;
+            $scope.monthlyNetChartData[scenario.name].push({
+              key: 'Net Energy Use' + unit,
+              values: _.map(months, function (month, i) {
+                var value = 0;
+                if (changeToKbtu){
+                  value = scenario.monthly_values['Electricity:Facility'][i]*3.41 + scenario.monthly_values['NaturalGas:Facility'][i] + scenario.monthly_values['Propane:Facility'][i] + scenario.monthly_values['FuelOilNo2:Facility'][i] + scenario.monthly_values['OtherFuels:Facility'][i];
+
+                  // check that we have ElectricityProduced monthly data
+                  if(scenario.monthly_values['REopt:ElectricityProduced:Total']) {
+                    value = value - scenario.monthly_values['REopt:ElectricityProduced:Total'][i]*3.41 
+                  }
+                   _.forEach(kbtu_datasets, function(ds){
+                     value += scenario.monthly_values[ds][i];
+                   });
+                 }
+                else {
+                  value = scenario.monthly_values['Electricity:Facility'][i]
+                  if(scenario.monthly_values['REopt:ElectricityProduced:Total']) {
+                    value = value - scenario.monthly_values['REopt:ElectricityProduced:Total'][i]; //Values are in kWh
+                  }
+                }
+                // value;
+                $scope.annualNetChartData[scenario.name] += value;
+                monthlyNetYMin = _.min([monthlyNetYMin, value]);
+                monthlyNetYMax = _.max([monthlyNetYMax, value]);
+                return {
+                  x: month,
+                  y: value
+                };
+              })
+            });
+            $scope.annualNetChartData[scenario.name] = _.round($scope.annualNetChartData[scenario.name]);
+            $scope.monthlyNetChartOptions.chart['yDomain'] = [_.round(monthlyNetYMin), _.round(monthlyNetYMax)];
+          }
+          
+          // annual end use
+          if(scenario['complete_simulation'] == true){
+          $scope.annualEndUseChartData[scenario.name] = [];
+          // Find all applicable end uses
+          _.forEach(applicableEndUseKeys, function (endUseKey){
+              var endUseValue = scenario.annual_values[endUseKey]
+
+              // console.log("endUseKey: ", endUseKey, " endUseValue: ", endUseValue);
+                      
+            $scope.annualEndUseChartData[scenario.name].push({
+              key: endUseKey,
+              values: [{
+                x: 'End Use', 
+                y: endUseValue
+              }]
+            });
+          });
+          $scope.annualEndUseChartOptions.chart['yDomain'] = [0, _.round(annualTotalYMax)];
+        
+          }
+        });
+        
+        // fix the emissions charts Y range
+        _.forEach($scope.emissionCharts, function(chart) {
+            $scope.annualEmissionsChartOptions[chart.name].chart['yDomain'] = [_.round(emissionsYMin[chart.name]), _.round(emissionsYMax[chart.name])];
+        });  
+      });    
+     
+      _.delay(function () {
+        window.dispatchEvent(new Event('resize'));
+      }, 1000);
+      
+      myApp.filter('strReplace', function () {
+        return function (input, from, to) {
+          input = input || '';
+          from = from || '';
+          to = to || '';
+          return input.replace(new RegExp(from, 'g'), to);
+        };
+      });
+    </script>
+
+  </body>
+</html>
