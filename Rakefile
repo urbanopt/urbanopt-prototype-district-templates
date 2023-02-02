@@ -386,7 +386,10 @@ task :clsw_summary do
         feature_id = File.basename(feature)
         # create new entry if this feature_id hasn't been added yet
         if !feature_hash.has_key?(feature_id)
-          feature_hash[feature_id] = {:eui => {}, :unmet_occ => {}, :feature_rt => {}, :ep_rt => {}}
+          bldg_type = "tbd"
+          floor_area = 0.0
+          cz = "tbd"
+          feature_hash[feature_id] = {:bldg_type => bldg_type, :floor_area => floor_area, :cz => cz, :eui => {}, :unmet_occ => {}, :feature_rt => {}, :ep_rt => {}}
         end
 
         # pouplate data for this feature for this location
@@ -406,10 +409,11 @@ task :clsw_summary do
   require "csv"
   csv_rows = []
   made_headers = false
-  headers = ['feature_id']
+  headers = ['feature_id', 'bldg_type', 'floor_area', 'cz']
   feature_hash.each do |feature_id,v|
-    arr_row = [feature_id]
 
+    # add high level data to hash and CSV that have common accross location for a given feature_id
+    arr_row = [feature_id, v[:bldg_type],v[:floor_area],v[:cz]]
     v[:eui].each do |cz,v_eui|
       arr_row << v_eui
       if ! made_headers then headers << "eui_#{cz}" end
