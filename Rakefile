@@ -306,8 +306,27 @@ task :clsw, [:json] do |t, args|
     Rake::Task["urbanopt_create_scenario"].invoke(json_mod_name, mapper, osw)
     Rake::Task["urbanopt_create_scenario"].reenable # this lets invoke run again, can try execute instead which doesn't need this but that isn't working
 
-    # name of CSV that should be made with scenario
+    # disable slowest features for now
+    require 'csv'
     csv = "sweepbaselinemodified_scenario.csv"
+    def delete_rows_by_value(file_path, value_to_delete)
+      data = []
+
+      CSV.foreach(file_path) do |row|
+        data << row unless row[0] == value_to_delete
+      end
+
+      CSV.open(file_path, "w") do |csv|
+        data.each { |row| csv << row }
+      end
+    end
+    scenario_path =  File.join(Dir.pwd,"/projects/sweep_#{sweep_prefix.downcase}/#{csv}")
+    delete_rows_by_value(scenario_path, "2213816")
+    delete_rows_by_value(scenario_path, "2110857")
+    delete_rows_by_value(scenario_path, "2171221")
+    delete_rows_by_value(scenario_path, "2187625")
+
+    # name of CSV that should be made with scenario
     Rake::Task["urbanopt_run_project"].invoke(json_mod_name, csv)
     Rake::Task["urbanopt_run_project"].reenable
 
@@ -384,20 +403,68 @@ task :clsw_summary do
       Dir["#{project}/run/#{scenario}/*"].sort.each do |feature|
         next if ! File.directory?(feature)
         feature_id = File.basename(feature)
+
+        # load OSW to get information from argument values
+        osw_path = OpenStudio::Path.new("#{feature}/out.osw")
+        osw = OpenStudio::WorkflowJSON.load(osw_path).get
+        runner = OpenStudio::Measure::OSRunner.new(osw)
+        status = runner.workflow.completedStatus.get 
+        started = runner.workflow.startedAt.get 
+        completed = runner.workflow.completedAt.get 
+
+        # todo add something to log when status is not Success (maybe where EUI would be, otherweise need column for each location)
+
+        current_bldg_type = nil
+        current_single_floor_area = nil
+        current_num_stories_above_grade = nil
+        # step through measure steps
+        runner.workflow.workflowSteps.each do |step|
+          if step.to_MeasureStep.is_initialized
+      
+            measure_step = step.to_MeasureStep.get
+            measure_dir_name = measure_step.measureDirName
+            if measure_step.name.is_initialized
+              measure_step_name = measure_step.name.get
+            else
+              measure_step_name = nil
+            end
+            #next if ! measure_step.result.is_initialized
+            #next if ! measure_step.result.get.stepResult.is_initialized
+            #measure_step_result = measure_step.result.get.stepResult.get.valueName
+            # populate registerValue objects
+            result = measure_step.result.get
+            result.stepValues.each do |value|
+              # todo - grab data from osw
+              if measure_dir_name == "default_feature_reports" && value.name == "feature_name"
+                current_bldg_type = value.valueAsVariant.to_s.split("-").first
+              end
+              if measure_dir_name == "create_bar_from_building_type_ratios" && value.name == "single_floor_area"
+                current_single_floor_area = value.valueAsVariant
+              end
+              if measure_dir_name == "create_bar_from_building_type_ratios" && value.name == "num_stories_above_grade"
+                current_num_stories_above_grade = value.valueAsVariant
+              end
+            end
+          else
+            #puts "This step is not a measure"
+          end
+        end
+
         # create new entry if this feature_id hasn't been added yet
         if !feature_hash.has_key?(feature_id)
-          bldg_type = "tbd"
-          floor_area = 0.0
-          cz = "tbd"
-          feature_hash[feature_id] = {:bldg_type => bldg_type, :floor_area => floor_area, :cz => cz, :eui => {}, :unmet_occ => {}, :feature_rt => {}, :ep_rt => {}}
+          bldg_type = current_bldg_type
+          floor_area = current_single_floor_area
+          feature_hash[feature_id] = {:bldg_type => bldg_type, :floor_area => floor_area, :eui => {}, :unmet_occ => {}, :feature_rt => {}, :ep_rt => {}}
         end
 
         # pouplate data for this feature for this location
         feature_hash[feature_id][:eui][cz_string] = 0.0 # todo - add lookup later
         feature_hash[feature_id][:unmet_occ][cz_string] = 0.0 # todo - add lookup later
-        feature_hash[feature_id][:feature_rt][cz_string] = 0.0 # todo - add lookup later
-        feature_hash[feature_id][:ep_rt][cz_string] = 0.0 # todo - add lookup later
-
+        feature_hash[feature_id][:feature_rt][cz_string] = (completed - started).totalMinutes.round
+        ep_time_string_raw = runner.workflow.eplusoutErr.get.split("Elapsed Time=").last
+        ep_time_hr = ep_time_string_raw[0, 2].to_i * 60
+        ep_time_min = ep_time_string_raw[5, 2].to_i
+        feature_hash[feature_id][:ep_rt][cz_string] = ep_time_hr + ep_time_min
       end
     end
   end
@@ -409,11 +476,11 @@ task :clsw_summary do
   require "csv"
   csv_rows = []
   made_headers = false
-  headers = ['feature_id', 'bldg_type', 'floor_area', 'cz']
+  headers =  ['feature_id', 'bldg_type', 'footprint']
   feature_hash.each do |feature_id,v|
 
     # add high level data to hash and CSV that have common accross location for a given feature_id
-    arr_row = [feature_id, v[:bldg_type],v[:floor_area],v[:cz]]
+    arr_row = [feature_id, v[:bldg_type],v[:floor_area]]
     v[:eui].each do |cz,v_eui|
       arr_row << v_eui
       if ! made_headers then headers << "eui_#{cz}" end

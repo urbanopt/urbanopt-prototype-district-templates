@@ -1033,7 +1033,7 @@ module URBANopt
             # set_run_period
             OpenStudio::Extension.set_measure_argument(osw, 'set_run_period', '__SKIP__', false)
             # can enable reporting (commercial building types only for now)
-            # OpenStudio::Extension.set_measure_argument(osw, 'openstudio_results', '__SKIP__', false)
+            OpenStudio::Extension.set_measure_argument(osw, 'openstudio_results', '__SKIP__', false)
             # OpenStudio::Extension.set_measure_argument(osw, 'envelope_and_internal_load_breakdown', '__SKIP__', false)
             OpenStudio::Extension.set_measure_argument(osw, 'generic_qaqc', '__SKIP__', false)
 
