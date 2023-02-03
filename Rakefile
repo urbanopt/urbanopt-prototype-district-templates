@@ -393,11 +393,11 @@ task :clsw_summary do
 
   # hash that will be converted to CSV
   feature_hash = {}
-  cz_strings = []
 
   # loop through projects
   Dir["projects/#{project_prefix}*"].sort.each do |project|
     if Dir.exist?("#{project}/run/#{scenario}")
+      # TODO - previx or replace cz_string with climate zone and sort columns in CSV
       cz_string = project.gsub("projects/#{project_prefix}","")
       puts "* Gathering data for #{cz_string}"
       Dir["#{project}/run/#{scenario}/*"].sort.each do |feature|
@@ -414,9 +414,13 @@ task :clsw_summary do
 
         # todo add something to log when status is not Success (maybe where EUI would be, otherweise need column for each location)
 
-        current_bldg_type = nil
-        current_single_floor_area = nil
-        current_num_stories_above_grade = nil
+        bldg_type = nil
+        total_building_area = nil
+        num_stories_above_grade = nil
+        eui = nil
+        unmet_clg_occ = nil
+        unmet_htg_occ = nil
+        climate_zone = nil
         # step through measure steps
         runner.workflow.workflowSteps.each do |step|
           if step.to_MeasureStep.is_initialized
@@ -434,15 +438,27 @@ task :clsw_summary do
             # populate registerValue objects
             result = measure_step.result.get
             result.stepValues.each do |value|
-              # todo - grab data from osw
               if measure_dir_name == "default_feature_reports" && value.name == "feature_name"
-                current_bldg_type = value.valueAsVariant.to_s.split("-").first
+                bldg_type = value.valueAsVariant.to_s.split("-").first
               end
-              if measure_dir_name == "create_bar_from_building_type_ratios" && value.name == "single_floor_area"
-                current_single_floor_area = value.valueAsVariant
+              if measure_dir_name == "openstudio_results" && value.name == "total_building_area"
+                total_building_area = value.valueAsVariant
               end
               if measure_dir_name == "create_bar_from_building_type_ratios" && value.name == "num_stories_above_grade"
-                current_num_stories_above_grade = value.valueAsVariant
+                num_stories_above_grade = value.valueAsVariant
+              end
+              # TODO - get EUI and UH working fo HPXML based workflow
+              if measure_dir_name == "openstudio_results" && value.name == "eui"
+                eui = value.valueAsVariant
+              end
+              if measure_dir_name == "openstudio_results" && value.name == "unmet_hours_during_occupied_cooling"
+                unmet_clg_occ = value.valueAsVariant
+              end
+              if measure_dir_name == "openstudio_results" && value.name == "unmet_hours_during_occupied_heating"
+                unmet_htg_occ = value.valueAsVariant
+              end
+              if measure_dir_name == "ChangeBuildingLocation" && value.name == "reported_climate_zone"
+                climate_zone = value.valueAsVariant
               end
             end
           else
@@ -452,50 +468,52 @@ task :clsw_summary do
 
         # create new entry if this feature_id hasn't been added yet
         if !feature_hash.has_key?(feature_id)
-          bldg_type = current_bldg_type
-          floor_area = current_single_floor_area
-          feature_hash[feature_id] = {:bldg_type => bldg_type, :floor_area => floor_area, :eui => {}, :unmet_occ => {}, :feature_rt => {}, :ep_rt => {}}
+          feature_hash[feature_id] = {:bldg_type => bldg_type, :floor_area => total_building_area, :eui => {}, :unmet_clg_occ => {}, :unmet_htg_occ => {}, :feature_rt => {}, :ep_rt => {}}
         end
 
         # pouplate data for this feature for this location
-        feature_hash[feature_id][:eui][cz_string] = 0.0 # todo - add lookup later
-        feature_hash[feature_id][:unmet_occ][cz_string] = 0.0 # todo - add lookup later
-        feature_hash[feature_id][:feature_rt][cz_string] = (completed - started).totalMinutes.round
+        # TODO - get climze zone working for hpxml workflow
+        #cz_string_display = "#{climate_zone}_#{cz_string}"
+        cz_string_display = cz_string
+        feature_hash[feature_id][:eui][cz_string_display] = eui
+        feature_hash[feature_id][:unmet_clg_occ][cz_string_display] = unmet_clg_occ
+        feature_hash[feature_id][:unmet_htg_occ][cz_string_display] = unmet_htg_occ
+        feature_hash[feature_id][:feature_rt][cz_string_display] = (completed - started).totalMinutes.round
         ep_time_string_raw = runner.workflow.eplusoutErr.get.split("Elapsed Time=").last
         ep_time_hr = ep_time_string_raw[0, 2].to_i * 60
         ep_time_min = ep_time_string_raw[5, 2].to_i
-        feature_hash[feature_id][:ep_rt][cz_string] = ep_time_hr + ep_time_min
+        feature_hash[feature_id][:ep_rt][cz_string_display] = ep_time_hr + ep_time_min
       end
     end
   end
 
-  # for diagnostics, structured differentlY (nested) than csv
+  # for diagnostics, structured differently (nested) than csv
   # puts feature_hash.inspect
 
   # populate csv
   require "csv"
   csv_rows = []
   made_headers = false
-  headers =  ['feature_id', 'bldg_type', 'footprint']
+  headers =  ['feature_id', 'bldg_type', 'floor_area', 'feature_rt_min', 'feature_rt_max', 'ep_rt_min','ep_rt_max']
   feature_hash.each do |feature_id,v|
 
     # add high level data to hash and CSV that have common accross location for a given feature_id
-    arr_row = [feature_id, v[:bldg_type],v[:floor_area]]
-    v[:eui].each do |cz,v_eui|
+    arr_row = [feature_id, v[:bldg_type],v[:floor_area],v[:feature_rt].values.min, v[:feature_rt].values.max, v[:ep_rt].values.min, v[:ep_rt].values.max]
+    
+    # TODO - can I sort all of these columns by climate zone (hash not made in that order)
+    # should be able to sort hash by key below to do this 
+
+    v[:eui].sort.each do |cz,v_eui|
       arr_row << v_eui
       if ! made_headers then headers << "eui_#{cz}" end
     end
-    v[:unmet_occ].each do |cz,v_unmet_occ|
-      arr_row << v_unmet_occ
-      if ! made_headers then headers << "unmet_occ_#{cz}" end
+    v[:unmet_clg_occ].sort.each do |cz,v_unmet_clg_occ|
+      arr_row << v_unmet_clg_occ
+      if ! made_headers then headers << "unmet_clg_occ_#{cz}" end
     end
-    v[:feature_rt].each do |cz,v_feature_rt|
-      arr_row << v_feature_rt
-      if ! made_headers then headers << "feature_rt_#{cz}" end
-    end
-    v[:ep_rt].each do |cz,v_ep_rt|
-      arr_row << v_ep_rt
-      if ! made_headers then headers << "ep_rt_#{cz}" end
+    v[:unmet_htg_occ].sort.each do |cz,v_unmet_htg_occ|
+      arr_row << v_unmet_htg_occ
+      if ! made_headers then headers << "unmet_htg_occ_#{cz}" end
     end
     made_headers = true
 
