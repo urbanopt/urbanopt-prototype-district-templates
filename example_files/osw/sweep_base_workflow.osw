@@ -21,7 +21,7 @@
     },{
       "measure_dir_name": "ChangeBuildingLocation",
       "arguments": {
-        "__SKIP__": true,
+        "__SKIP__": false,
         "weather_file_name": "ChangeMe.epw",
         "climate_zone": "Lookup From Stat File"
       }
@@ -267,7 +267,7 @@
     },{
       "measure_dir_name": "openstudio_results",
       "arguments": {
-        "__SKIP__": true
+        "__SKIP__": false
       }
     }
   ],
