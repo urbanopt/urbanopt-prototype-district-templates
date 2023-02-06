@@ -54,6 +54,10 @@ bundle exec rake urbanopt_full_workflow
 
 **To run climate sweep across all CSV files**: If urban_edge_example.json is selected 4 feature buildings are disabled to speed up testing. Each cliamte zone will take 1-2 hours to run with the selected features disabled.
 
+```ruby
+bundle exec rake urbanopt_climate_sweep[<feature_file_name>.json]
+```
+
 **To generate a csv summary file or climate sweep projects**: This does not require post-processing or visualization to be run. It generates a CSV file with a row for each feature_Id, and columns for building type, building area, min and max feature runtime, and min and max EnergyPlus runtime. Lastly itcontains EUI, Unmet Cooling Hours, and Unmet Heating hours for each climate zone run. As conifigured it results in 1168 building simulations.
 
 ```ruby
