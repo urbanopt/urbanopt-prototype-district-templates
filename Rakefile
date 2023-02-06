@@ -238,23 +238,22 @@ task :urbanopt_run_project, [:json, :csv] do |t, args|
   scenario_runner.run(run_project(feature_file, csv_file))
 end
 
-desc 'Quick Test'
-task :qt, [:json, :csv] do |t, args|
-  puts 'Quick Test, creating project, creating scenario, running project, and post processing ...'
+desc 'Run full workflow for default GeoJSON'
+task :urbanopt_full_workflow, [] do |t, args|
+  puts 'Create, run, post-process, and visualize a project in a with a single command. Currently only runs with default arguments'
 
   Rake::Task["urbanopt_create_project"].invoke
   Rake::Task["urbanopt_create_scenario"].invoke
   Rake::Task["urbanopt_run_project"].invoke
   Rake::Task["urbanopt_post_process"].invoke
+  Rake::Task["urbanopt_visualize_feature"].invoke
 
 end
 
-# todo - setup a weather sweep rake task like qt, but have scenario setup that changes weather file for each scenario
-# make sure that change building location has climate zone to automatically set based on weather file
-# change to smaller geojson file with two office buildings so quick run and
-desc 'Climate Sweep'
-task :clsw, [:json] do |t, args|
-  puts 'Climate Sweep, Similar to Quick Test but this meakes a Scenario for each weather file in directory'
+# create and run project for each EPW file
+desc 'Full workflow climate sweep for all EPW file sin the repo.'
+task :urbanopt_climate_sweep, [:json] do |t, args|
+  puts 'Building on run full workflow, this runs the full workflow for each EPW in the repo for a selected GeoJSON file'
 
   # set default if JSON not passed in
   json_raw = args[:json]
@@ -330,13 +329,13 @@ task :clsw, [:json] do |t, args|
     Rake::Task["urbanopt_run_project"].invoke(json_mod_name, csv)
     Rake::Task["urbanopt_run_project"].reenable
 
-    # post process fails to find GeoJSON file turned off for now
-    #GeoJSON file '/Users/dgoldwas/Documents/github/uo/proto_dist/projects/sweep_mn_international/projects/sweep_mn_international/sweep_mn_international.json' does not exist
-
-    # currently if post processing fails the rake task ends, maybe find way to rescue this so the rest of the scenarios keep running
-    # int falls goes fine through this but Atlanta fail with stange path with it looking for nested projects directories that do not exist.
+    # TODO - post process
     #Rake::Task["urbanopt_post_process"].invoke(json_mod_name, csv)
     #Rake::Task["urbanopt_post_process"].reenable
+
+    # TODO - visualization
+    #Rake::Task["urbanopt_visualize_features"].invoke(json_mod_name, csv)
+    #Rake::Task["urbanopt_visualize_features"].reenable
 
     # Seems like need to move back up 2 directories because next location gets made within this project instead of at top level
     Dir.chdir(orig_dir)
@@ -383,9 +382,9 @@ task :default => :update_all
 # This expects all projects to be run from same GeoJSON with same featureID's
 # First column is ID, followed by EUI for each climate zone, then unmet horus for each climate zone, then feature runtime min/max, E+ runtime min/max
 
-desc 'Generuate Climate Zone Sweep Summary CSV'
-task :clsw_summary do
-  puts 'Making CSV across all run projects with feature ID as key; first column'
+desc 'Climate Sweep Generate Summary CSV'
+task :urbanopt_climate_sweep_generate_summary_csv do
+  puts 'Making CSV across all projects with name starting with "sweep_" with feature ID as key; first column'
 
   # test specific strigns used for climate zone sweep
   project_prefix = "sweep_"
