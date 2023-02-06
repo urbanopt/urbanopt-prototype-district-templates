@@ -2,7 +2,7 @@
 URBANopt prototype district generator development in collaboration with LBNL and NREL
 
 The URBANopt prototype district generator can be used to create and run URBANopt projects for prototype
-district types. `urban_edge_example.json` contains building feature elments represenative of an urban edge district. It contains a variety of building types, sizing, number of stories, and vintages. For testing purpases with climate sweep task, 4 features are exclued from the scenario to expidte the time taken for testing.
+district types. `urban_edge_example.json` contains building feature elments represenative of an urban edge district. It contains a variety of building types, sizing, number of stories, and vintages. For testing purpases with climate sweep task, 4 features are exclued from the scenario to expidte the time taken for testing. For testing purposes only to go through the process in just a few minutes per climate zone `urban_edge_mini.json` can be used which just has 5 building features.
 
 The `BaselineModified.rb` and `SweepBaselineModified.rb` use a working that uses building type lookup to determine logic for geometry creation for commerical buildigns. In some cases a blending whole building space type is used with a core and perimeter zoning to GeoJSON feature footprint. In other cases discrete space types are used with a rectangular building that uses the GeoJSON feature footprint to get the building exposure by orientation.
 
