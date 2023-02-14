@@ -484,7 +484,7 @@ task :urbanopt_climate_sweep_generate_summary_csv do
         end
 
         # pouplate data for this feature for this location
-        cz_string_display = climate_zone
+        cz_string_display = "#{climate_zone} #{cz_string}"
         feature_hash[feature_id][:eui][cz_string_display] = eui.round
         feature_hash[feature_id][:unmet_clg_occ][cz_string_display] = unmet_clg_occ.round
         feature_hash[feature_id][:unmet_htg_occ][cz_string_display] = unmet_htg_occ.round
