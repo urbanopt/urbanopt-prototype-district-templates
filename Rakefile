@@ -86,6 +86,7 @@ def create_project(json)
     FileUtils.mkdir File.join('projects', folder_name)
     FileUtils.mkdir File.join('projects', folder_name, 'weather')
     FileUtils.mkdir File.join('projects', folder_name, 'mappers')
+    FileUtils.mkdir File.join('projects', folder_name, 'visualization')
 
     # copy config file
     FileUtils.cp(File.join('example_files', 'runner.conf'), File.join(dir_name, 'runner.conf'))
@@ -105,6 +106,10 @@ def create_project(json)
     FileUtils.cp_r(File.join('example_files', 'measures'), File.join(dir_name, 'measures'))
     FileUtils.cp_r(File.join('example_files', 'resources'), File.join(dir_name, 'resources'))
     FileUtils.cp_r(File.join('example_files', 'xml_building'), File.join(dir_name, 'xml_building'))
+
+    # copy visualization files
+    FileUtils.cp(File.join('example_files', 'visualization', "input_visualization_feature.html"), File.join(dir_name, 'visualization'))
+    FileUtils.cp(File.join('example_files', 'visualization', "input_visualization_scenario.html"), File.join(dir_name, 'visualization'))
 
   else
     puts "Project folder already exists..."
@@ -214,9 +219,9 @@ task :urbanopt_create_scenario, [:json, :mapper, :osw] do |t, args|
   json = args[:json]
   json = 'urban_edge_example.json' if json.nil?
   mapper = args[:mapper]
-  mapper = 'BaselineModified.rb' if mapper.nil?
+  mapper = 'sweepBaselineModified.rb' if mapper.nil?
   osw = args[:osw]
-  osw = 'base_workflow.osw' if osw.nil?
+  osw = 'sweep_base_workflow.osw' if osw.nil?
 
   create_scenario_file(json, mapper, osw)
 
@@ -239,14 +244,23 @@ task :urbanopt_run_project, [:json, :csv] do |t, args|
 end
 
 desc 'Run full workflow for default GeoJSON'
-task :urbanopt_full_workflow, [] do |t, args|
-  puts 'Create, run, post-process, and visualize a project in a with a single command. Currently only runs with default arguments'
+task :urbanopt_full_workflow, [:json, :mapper, :osw] do |t, args|
+  puts 'Create, run, post-process, and visualize a project in a with a single command.'
 
-  Rake::Task["urbanopt_create_project"].invoke
-  Rake::Task["urbanopt_create_scenario"].invoke
-  Rake::Task["urbanopt_run_project"].invoke
-  Rake::Task["urbanopt_post_process"].invoke
-  Rake::Task["urbanopt_visualize_feature"].invoke
+  # path to go back to later (this added to prevent post processing from failing)
+  orig_dir = Dir.pwd
+
+  json = args[:json]
+  mapper = args[:mapper]
+  osw = args[:osw]
+  csv = mapper.downcase.gsub(".rb","_scenario.csv")
+  puts "hello, #{json}, #{mapper}, #{osw}, #{csv}"
+  Rake::Task["urbanopt_create_project"].invoke(json)
+  Rake::Task["urbanopt_create_scenario"].invoke(json,mapper,osw)
+  Rake::Task["urbanopt_run_project"].invoke(json,csv)
+  Dir.chdir(orig_dir)
+  Rake::Task["urbanopt_post_process"].invoke(json,csv)
+  Rake::Task["urbanopt_visualize_features"].invoke(json,csv)
 
 end
 
@@ -329,6 +343,9 @@ task :urbanopt_climate_sweep, [:json] do |t, args|
     Rake::Task["urbanopt_run_project"].invoke(json_mod_name, csv)
     Rake::Task["urbanopt_run_project"].reenable
 
+    # Seems like need to move back up 2 directories because next location gets made within this project instead of at top level
+    Dir.chdir(orig_dir)
+
     # TODO - post process
     #Rake::Task["urbanopt_post_process"].invoke(json_mod_name, csv)
     #Rake::Task["urbanopt_post_process"].reenable
@@ -336,9 +353,6 @@ task :urbanopt_climate_sweep, [:json] do |t, args|
     # TODO - visualization
     #Rake::Task["urbanopt_visualize_features"].invoke(json_mod_name, csv)
     #Rake::Task["urbanopt_visualize_features"].reenable
-
-    # Seems like need to move back up 2 directories because next location gets made within this project instead of at top level
-    Dir.chdir(orig_dir)
 
   end
 
