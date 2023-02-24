@@ -1,6 +1,6 @@
 {
 "type": "FeatureCollection",
-"project": { "id": "7c33a001-bccb-413e-ac87-67558b5d4b07", "name": "Example LA Project", "surface_elevation": null, "import_surrounding_buildings_as_shading": null, "weather_filename": "USA_CA_Los.Angeles.Intl.AP.722950_TMY3.epw", "tariff_filename": null, "climate_zone": "3B", "cec_climate_zone": null, "begin_date": "2017-01-01T07:00:00.000Z", "end_date": "2017-12-31T07:00:00.000Z", "timesteps_per_hour": 1, "default_template": "DOE Ref Pre-1980" },
+"project": { "id": "7c33a001-bccb-413e-ac87-67558b5d4b07", "name": "Example Project", "surface_elevation": null, "import_surrounding_buildings_as_shading": null, "weather_filename": "USA_TX_El.Paso.Intl.AP.722700_TMY3.epw", "tariff_filename": null, "climate_zone": "3B", "cec_climate_zone": null, "begin_date": "2017-01-01T07:00:00.000Z", "end_date": "2017-12-31T07:00:00.000Z", "timesteps_per_hour": 1, "default_template": "DOE Ref Pre-1980" },
 "name": "LA_example_final",
 "features": [
 { "type": "Feature", "properties": { "id": "53340c2c-ab20-40db-aba1-11ac607c52a7", "name": "Site Origin", "type": "Site Origin", "begin_date": "2017\/01\/01 07:00:00+00", "end_date": "2017\/12\/31 07:00:00+00", "cec_climate_zone": null, "climate_zone": "3B", "default_template": "DOE Ref Pre-1980", "import_surrounding_buildings_as_shading": null, "surface_elevation": null, "tariff_filename": null, "timesteps_per_hour": 1, "weather_filename": "USA_CA_Los.Angeles.Intl.AP.722950_TMY3.epw" }, "geometry": { "type": "Point", "coordinates": [ -118.054, 34.32 ] } },
