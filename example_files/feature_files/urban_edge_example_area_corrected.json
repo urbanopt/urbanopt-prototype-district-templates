@@ -5,7 +5,7 @@
     "name": "Example LA Project",
     "surface_elevation": null,
     "import_surrounding_buildings_as_shading": null,
-    "weather_filename": "USA_CA_Los.Angeles.Intl.AP.722950_TMY3.epw",
+    "weather_filename": "USA_TX_El.Paso.Intl.AP.722700_TMY3.epw",
     "tariff_filename": null,
     "climate_zone": "3B",
     "cec_climate_zone": null,

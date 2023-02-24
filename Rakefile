@@ -142,6 +142,9 @@ def create_scenario_file(json, mapper, osw)
 
   # copy mapper
   FileUtils.cp(File.join('example_files', 'mappers', mapper), File.join(dir_name, 'mappers'))
+  if mapper == 'SweepLoadFlexibility.rb'
+    FileUtils.cp(File.join('example_files', 'mappers', 'SweepBaselineModified.rb'), File.join(dir_name, 'mappers'))
+  end
 
   # copy osw
   FileUtils.cp(File.join('example_files', 'osw', osw), File.join(dir_name, 'mappers'))
