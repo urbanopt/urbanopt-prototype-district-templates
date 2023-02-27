@@ -143,6 +143,8 @@ def create_scenario_file(json, mapper, osw)
   # copy mapper
   FileUtils.cp(File.join('example_files', 'mappers', mapper), File.join(dir_name, 'mappers'))
   if mapper == 'SweepLoadFlexibility.rb'
+    FileUtils.cp(File.join('example_files', 'mappers', 'SweepLoadFlexibility.rb'), File.join(dir_name, 'mappers'))
+  else
     FileUtils.cp(File.join('example_files', 'mappers', 'SweepBaselineModified.rb'), File.join(dir_name, 'mappers'))
   end
 
@@ -201,6 +203,36 @@ def visualize_features(feature_file, scenario_file)
   end
 end
 
+# TODO - visualize_scenarios
+def visualize_scenarios(proj_dir_name)
+  name = 'Visualize Scenario Results'
+  root_dir = File.join(Dir.pwd, 'projects', proj_dir_name)
+  run_dir = File.join(root_dir, 'run')
+  scenario_folders = []
+  scenario_report_exists = false
+  Dir.glob(File.join(run_dir, '/*_scenario')) do |scenario_folder|
+    scenario_report = File.join(scenario_folder, 'scenario_optimization.csv')
+    # Check if Scenario Optimization REopt file exists and add that
+    if File.exist?(File.join(scenario_folder, 'scenario_optimization.csv'))
+      scenario_folders << File.join(scenario_folder, 'scenario_optimization.csv')
+      scenario_report_exists = true
+    # Check if Default Feature Report exists and add that
+    elsif File.exist?(File.join(scenario_folder, 'default_scenario_report.csv'))
+      scenario_folders << File.join(scenario_folder, 'default_scenario_report.csv')
+      scenario_report_exists = true
+    else puts "\nERROR: Default reports not created for #{scenario_folder}. Please use 'process --default' to create default post processing reports for all scenarios first. Visualization not generated for #{scenario_folder}.\n"
+    end
+  end
+  if scenario_report_exists == true
+    puts "\nCreating visualizations for all Scenario results\n"
+    URBANopt::Scenario::ResultVisualization.create_visualization(scenario_folders, false)
+    html_in_path = File.join(root_dir, 'visualization', 'input_visualization_scenario.html')
+    html_out_path = File.join(run_dir, 'scenario_comparison.html')
+    FileUtils.cp(html_in_path, html_out_path)
+    puts "\nDone\n"
+  end
+end
+
 # Load in the rake tasks from the base extension gem
 #rake_task = OpenStudio::Extension::RakeTask.new
 #rake_task.set_extension_class(URBANopt::ExampleGeoJSONProject::ExampleGeoJSONProject)
@@ -246,7 +278,7 @@ task :urbanopt_run_project, [:json, :csv] do |t, args|
   scenario_runner.run(run_project(feature_file, csv_file))
 end
 
-desc 'Run full workflow for default GeoJSON'
+desc 'Full workflow'
 task :urbanopt_full_workflow, [:json, :mapper, :osw] do |t, args|
   puts 'Create, run, post-process, and visualize a project in a with a single command.'
 
@@ -289,7 +321,6 @@ task :urbanopt_climate_sweep, [:json] do |t, args|
 
     basename = File.basename(epw)
     sweep_prefix = basename.split(".").first.gsub("USA_","").split("-").first
-    mapper = "SweepBaselineModified.rb"
     osw = "sweep_base_workflow.osw"
 
     # alter copy of JSON file to update weather file name
@@ -318,44 +349,55 @@ task :urbanopt_climate_sweep, [:json] do |t, args|
     # cleanup file file in example_files/feature_files
     File.delete(json_mod_path)
 
-    puts "Creating and running Scenario for #{sweep_prefix}"
-    Rake::Task["urbanopt_create_scenario"].invoke(json_mod_name, mapper, osw)
-    Rake::Task["urbanopt_create_scenario"].reenable # this lets invoke run again, can try execute instead which doesn't need this but that isn't working
+    mappers = ["SweepBaselineModified.rb","SweepLoadFlexibility.rb" ]
+    mappers.each do |mapper|
 
-    # disable slowest features for now
-    require 'csv'
-    csv = "sweepbaselinemodified_scenario.csv"
-    def delete_rows_by_value(file_path, value_to_delete)
-      data = []
+      Dir.chdir(orig_dir)
+      puts "Creating and running Scenario for #{sweep_prefix} for #{mapper}"
+      Rake::Task["urbanopt_create_scenario"].invoke(json_mod_name, mapper, osw)
+      Rake::Task["urbanopt_create_scenario"].reenable # this lets invoke run again, can try execute instead which doesn't need this but that isn't working
 
-      CSV.foreach(file_path) do |row|
-        data << row unless row[0] == value_to_delete
+      # disable slowest features for now
+      require 'csv'
+      csv = "#{mapper.downcase.gsub(".rb","")}_scenario.csv"
+      def delete_rows_by_value(file_path, value_to_delete)
+        data = []
+
+        CSV.foreach(file_path) do |row|
+          data << row unless row[0] == value_to_delete
+        end
+
+        CSV.open(file_path, "w") do |csv|
+          data.each { |row| csv << row }
+        end
       end
+      scenario_path =  File.join(Dir.pwd,"/projects/sweep_#{sweep_prefix.downcase}/#{csv}")
+      delete_rows_by_value(scenario_path, "2213816")
+      delete_rows_by_value(scenario_path, "2110857")
+      delete_rows_by_value(scenario_path, "2171221")
+      delete_rows_by_value(scenario_path, "2187625")
 
-      CSV.open(file_path, "w") do |csv|
-        data.each { |row| csv << row }
-      end
+      # name of CSV that should be made with scenario
+      Rake::Task["urbanopt_run_project"].invoke(json_mod_name, csv)
+      Rake::Task["urbanopt_run_project"].reenable
+
+      # Seems like need to move back up 2 directories because next location gets made within this project instead of at top level
+      Dir.chdir(orig_dir)
+
+      # post process
+      Rake::Task["urbanopt_post_process"].invoke(json_mod_name, csv)
+      Rake::Task["urbanopt_post_process"].reenable
+      Dir.chdir(orig_dir)
+      # visualization
+      Rake::Task["urbanopt_visualize_features"].invoke(json_mod_name, csv)
+      Rake::Task["urbanopt_visualize_features"].reenable
+      Dir.chdir(orig_dir)
     end
-    scenario_path =  File.join(Dir.pwd,"/projects/sweep_#{sweep_prefix.downcase}/#{csv}")
-    delete_rows_by_value(scenario_path, "2213816")
-    delete_rows_by_value(scenario_path, "2110857")
-    delete_rows_by_value(scenario_path, "2171221")
-    delete_rows_by_value(scenario_path, "2187625")
 
-    # name of CSV that should be made with scenario
-    Rake::Task["urbanopt_run_project"].invoke(json_mod_name, csv)
-    Rake::Task["urbanopt_run_project"].reenable
-
-    # Seems like need to move back up 2 directories because next location gets made within this project instead of at top level
+    # add reporting that compares scenarios
+    Rake::Task["urbanopt_visualize_scenarios"].invoke(sweep_prefix.downcase)
+    Rake::Task["urbanopt_visualize_scenarios"].reenable
     Dir.chdir(orig_dir)
-
-    # TODO - post process
-    #Rake::Task["urbanopt_post_process"].invoke(json_mod_name, csv)
-    #Rake::Task["urbanopt_post_process"].reenable
-
-    # TODO - visualization
-    #Rake::Task["urbanopt_visualize_features"].invoke(json_mod_name, csv)
-    #Rake::Task["urbanopt_visualize_features"].reenable
 
   end
 
@@ -391,6 +433,17 @@ task :urbanopt_visualize_features, [:json, :csv] do |t, args|
   csv = 'baselinemodified_scenario.csv' if csv.nil?
 
   visualize_features(json, csv)
+end
+
+# Visualize scenarios
+desc 'Visualize and compare results for all Scenarios'
+task :urbanopt_visualize_scenarios, [:proj_dir_name] do |t,args|
+  puts 'Visualizing results for all Scenarios...'
+
+  proj_dir_name = args[:proj_dir_name]
+  proj_dir_name = 'urban_edge_example' if proj_dir_name.nil?
+
+  visualize_scenarios(proj_dir_name)
 end
 
 task :default => :update_all
