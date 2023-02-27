@@ -395,6 +395,7 @@ task :urbanopt_climate_sweep, [:json] do |t, args|
     end
 
     # add reporting that compares scenarios
+    # TODO - this does not appearl to be running, but doesn't stop the sweep, and running this tasks after that fact worked fine
     Rake::Task["urbanopt_visualize_scenarios"].invoke(sweep_prefix.downcase)
     Rake::Task["urbanopt_visualize_scenarios"].reenable
     Dir.chdir(orig_dir)
