@@ -306,7 +306,7 @@ task :urbanopt_climate_sweep, [:json] do |t, args|
 
   # set default if JSON not passed in
   json_raw = args[:json]
-  json_raw = 'urban_edge_example.json' if json_raw.nil?
+  json_raw = 'urban_edge_example_area_corrected.json' if json_raw.nil?
 
   # create a copy of JSON file with temp name
   project_folder = File.join(Dir.pwd, "example_files/feature_files")
@@ -371,33 +371,49 @@ task :urbanopt_climate_sweep, [:json] do |t, args|
           data.each { |row| csv << row }
         end
       end
+
+      # when only want to run the slow ones
+      def keep_slow_features(file_path, slow_features)
+        data = []
+
+        CSV.foreach(file_path) do |row|
+          data << row if slow_features.include?(row[0])
+        end
+
+        CSV.open(file_path, "w") do |csv|
+          data.each { |row| csv << row }
+        end
+      end
       scenario_path =  File.join(Dir.pwd,"/projects/sweep_#{sweep_prefix.downcase}/#{csv}")
-      delete_rows_by_value(scenario_path, "2213816")
-      delete_rows_by_value(scenario_path, "2110857")
-      delete_rows_by_value(scenario_path, "2171221")
-      delete_rows_by_value(scenario_path, "2187625")
+      #delete_rows_by_value(scenario_path, "2213816")
+      #delete_rows_by_value(scenario_path, "2110857")
+      #delete_rows_by_value(scenario_path, "2171221")
+      #delete_rows_by_value(scenario_path, "2187625")
+      
+      slow_features = ["2213816","2110857","2171221","2187625"]
+      keep_slow_features(scenario_path,slow_features)
 
       # name of CSV that should be made with scenario
-      Rake::Task["urbanopt_run_project"].invoke(json_mod_name, csv)
-      Rake::Task["urbanopt_run_project"].reenable
+      #Rake::Task["urbanopt_run_project"].invoke(json_mod_name, csv)
+      #Rake::Task["urbanopt_run_project"].reenable
 
       # Seems like need to move back up 2 directories because next location gets made within this project instead of at top level
       Dir.chdir(orig_dir)
 
       # post process
-      Rake::Task["urbanopt_post_process"].invoke(json_mod_name, csv)
-      Rake::Task["urbanopt_post_process"].reenable
+      #Rake::Task["urbanopt_post_process"].invoke(json_mod_name, csv)
+      #Rake::Task["urbanopt_post_process"].reenable
       Dir.chdir(orig_dir)
       # visualization
-      Rake::Task["urbanopt_visualize_features"].invoke(json_mod_name, csv)
-      Rake::Task["urbanopt_visualize_features"].reenable
+      #Rake::Task["urbanopt_visualize_features"].invoke(json_mod_name, csv)
+      #Rake::Task["urbanopt_visualize_features"].reenable
       Dir.chdir(orig_dir)
     end
 
     # add reporting that compares scenarios
     # TODO - this does not appearl to be running, but doesn't stop the sweep, and running this tasks after that fact worked fine
-    Rake::Task["urbanopt_visualize_scenarios"].invoke(sweep_prefix.downcase)
-    Rake::Task["urbanopt_visualize_scenarios"].reenable
+    #Rake::Task["urbanopt_visualize_scenarios"].invoke(sweep_prefix.downcase)
+    #Rake::Task["urbanopt_visualize_scenarios"].reenable
     Dir.chdir(orig_dir)
 
   end
