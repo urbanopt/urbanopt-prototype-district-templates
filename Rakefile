@@ -390,7 +390,7 @@ task :urbanopt_climate_sweep, [:json] do |t, args|
       #delete_rows_by_value(scenario_path, "2171221")
       #delete_rows_by_value(scenario_path, "2187625")
       
-      slow_features = ["2213816","2110857","2171221","2187625"]
+      slow_features = ["2213816","2110857","2171221","2187625","Feature Id"]
       keep_slow_features(scenario_path,slow_features)
 
       # name of CSV that should be made with scenario
