@@ -349,7 +349,7 @@ task :urbanopt_climate_sweep, [:json] do |t, args|
     # cleanup file file in example_files/feature_files
     File.delete(json_mod_path)
 
-    mappers = ["SweepBaselineModified.rb","SweepLoadFlexibility.rb" ]
+    mappers = [,"SweepLoadFlexibility.rb" ] # removed "SweepBaselineModified.rb" for testing only usign slowest scenario
     mappers.each do |mapper|
 
       Dir.chdir(orig_dir)
