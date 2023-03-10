@@ -475,7 +475,8 @@ task :urbanopt_climate_sweep_generate_summary_csv do
 
   # test specific strigns used for climate zone sweep
   project_prefix = "sweep_"
-  scenario = "sweepbaselinemodified_scenario"
+  #scenario = "sweepbaselinemodified_scenario"
+  scenario = "sweeploadflexibility_scenario"
 
   # hash that will be converted to CSV
   feature_hash = {}
@@ -506,6 +507,7 @@ task :urbanopt_climate_sweep_generate_summary_csv do
         eui = nil
         unmet_clg_occ = nil
         unmet_htg_occ = nil
+        missing_results = false
         # step through measure steps
         runner.workflow.workflowSteps.each do |step|
           if step.to_MeasureStep.is_initialized
@@ -521,6 +523,11 @@ task :urbanopt_climate_sweep_generate_summary_csv do
             #next if ! measure_step.result.get.stepResult.is_initialized
             #measure_step_result = measure_step.result.get.stepResult.get.valueName
             # populate registerValue objects
+            if ! measure_step.result.is_initialized
+              puts "can't find results for #{measure_dir_name} for feature ID #{feature_id} for #{scenario} in #{cz_string}."
+              missing_results = true
+              next
+            end
             result = measure_step.result.get
             result.stepValues.each do |value|
               if measure_dir_name == "default_feature_reports" && value.name == "feature_name"
@@ -551,6 +558,17 @@ task :urbanopt_climate_sweep_generate_summary_csv do
           end
         end
 
+        if missing_results
+          puts "Putting in blank values row for feature ID #{feature_id} for #{scenario} in #{cz_string} which is missing one or more measure results"
+          bldg_type = "missing"
+          total_building_area = -10
+          num_stories_above_grade = -10
+          eui = -10
+          unmet_clg_occ = -10
+          unmet_htg_occ = -10
+          climate_zone = -10
+        end
+
         # create new entry if this feature_id hasn't been added yet
         if !feature_hash.has_key?(feature_id)
           feature_hash[feature_id] = {:bldg_type => bldg_type, :floor_area => total_building_area, :eui => {}, :unmet_clg_occ => {}, :unmet_htg_occ => {}, :feature_rt => {}, :ep_rt => {}}
@@ -561,11 +579,15 @@ task :urbanopt_climate_sweep_generate_summary_csv do
         feature_hash[feature_id][:eui][cz_string_display] = eui.round
         feature_hash[feature_id][:unmet_clg_occ][cz_string_display] = unmet_clg_occ.round
         feature_hash[feature_id][:unmet_htg_occ][cz_string_display] = unmet_htg_occ.round
-        feature_hash[feature_id][:feature_rt][cz_string_display] = (completed - started).totalMinutes.round
-        ep_time_string_raw = runner.workflow.eplusoutErr.get.split("Elapsed Time=").last
-        ep_time_hr = ep_time_string_raw[0, 2].to_i * 60
-        ep_time_min = ep_time_string_raw[5, 2].to_i
-        feature_hash[feature_id][:ep_rt][cz_string_display] = ep_time_hr + ep_time_min
+        if missing_results
+          feature_hash[feature_id][:ep_rt][cz_string_display] = -10
+        else
+          feature_hash[feature_id][:feature_rt][cz_string_display] = (completed - started).totalMinutes.round
+          ep_time_string_raw = runner.workflow.eplusoutErr.get.split("Elapsed Time=").last
+          ep_time_hr = ep_time_string_raw[0, 2].to_i * 60
+          ep_time_min = ep_time_string_raw[5, 2].to_i
+          feature_hash[feature_id][:ep_rt][cz_string_display] = ep_time_hr + ep_time_min
+        end
       end
     end
     puts "#{cz_string} is in climate zone #{climate_zone}"
